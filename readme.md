@@ -1,6 +1,6 @@
 # PrognoSpect — Foreseeing What Follows
 
-PrognoSpect is cyber threat prediction system.
+PrognoSpect is a cyber threat prediction system.
 
 ---
 
