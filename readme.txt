@@ -1,4 +1,4 @@
-# PrognoSpect — Seeing What Comes Next
+# PrognoSpect — Foreseeing What Follows
 
 PrognoSpect is cyber threat prediction system.
 
