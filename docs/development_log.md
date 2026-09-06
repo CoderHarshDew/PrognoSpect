@@ -210,3 +210,38 @@ The current direction is to use:
 * avoidance of unnecessary dataframe copies.
 
 This becomes the immediate implementation constraint for the data pipeline.
+
+---
+
+## Preprocessing
+
+Per the previous architectural decision, the same state representation will be used for both the World Model and classifier.
+
+The preprocessing stage is being divided into two parts that will proceed concurrently:
+
+* **Data Cleaning** — removing unnecessary columns, validating values, and performing other required cleaning operations.
+* **State Representation Creation** — creating the network-state representation from the available dataset.
+
+Rather than creating a permanently cleaned dataset first and then creating a separate state-representation dataset from it, we are building **pipelines** that perform these operations.
+
+The state representation pipeline will work together with configuration files (`.yaml`) that define which columns should be included in the state representation and how they should be aggregated.
+
+For example, the configuration can specify which columns are part of the state representation, while the pipeline uses the rules defined in the configuration to aggregate those columns and create the representation.
+
+This allows the same pipeline to work with both the raw and cleaned dataset with very little modification to the implementation. The required changes can largely be controlled through the configuration files.
+
+We are taking this approach to speed up development. The pipeline will first be prepared to work with the raw dataset and will then be modified through the required configuration and implementation changes to work with the cleaned dataset.
+
+---
+
+## CICIDS2018 Dataset Investigation
+
+Further investigation of CSE-CIC-IDS2018 showed that the dataset appears to have already undergone some cleaning or preprocessing. However, invalid values are still present, so additional cleaning and investigation are required before the dataset can be used directly.
+
+During the investigation, we found that CICIDS2018 has substantial similarity to CICIDS2017. The major differences observed include changes to column names, the introduction of new columns, and the removal of some redundant columns.
+
+Based on these similarities, the data-processing pipeline previously developed for the Observion project, which was built around CICIDS2017, may be adaptable for CICIDS2018 after the necessary changes.
+
+Before adopting the Observion pipeline, we need to investigate the remaining CICIDS2018 files and determine how consistently the observed structure and data characteristics apply across the dataset.
+
+Only **one of the ten CSV files** has been investigated so far, so no final conclusion has been made regarding the suitability of the Observion pipeline. Further dataset investigation is required.
