@@ -245,3 +245,49 @@ Based on these similarities, the data-processing pipeline previously developed f
 Before adopting the Observion pipeline, we need to investigate the remaining CICIDS2018 files and determine how consistently the observed structure and data characteristics apply across the dataset.
 
 Only **one of the ten CSV files** has been investigated so far, so no final conclusion has been made regarding the suitability of the Observion pipeline. Further dataset investigation is required.
+
+---
+
+## Dtype Warning Investigation
+
+While loading the CICIDS2018 CSV files with pandas, a `DtypeWarning` was encountered indicating that some columns contained mixed data types.
+
+Further inspection showed that the affected columns are expected to contain numerical network-flow features, suggesting that unexpected non-numeric values may be present in the dataset.
+
+During the investigation, suspicious header-like rows were identified within the data. These rows appear to contain column-name or header information where normal numerical observations should be present, which could explain the mixed-type inference by pandas.
+
+The investigation is being extended across all ten CSV files to determine whether this is a dataset-wide issue or limited to specific files.
+
+The current approach is to identify and remove erroneous/header-like rows where confirmed, followed by appropriate numeric type conversion and validation of the affected columns.
+
+No final conclusion has been made yet regarding the complete cause of the `DtypeWarning`. Further investigation of the remaining files is required.
+
+---
+
+## EDA Conclusions and Observion Pipeline Reuse
+
+EDA of CICIDS2018 showed that the dataset is largely similar to CICIDS2017. Based on the similarities, we determined that the preprocessing pipeline previously developed for the Observion project can be reused for CICIDS2018 after making several changes:
+
+* **Renaming columns** to match the expected pipeline format.
+* **Removing extra columns** that are not required.
+* **Adding logic for newly introduced useful columns** in CICIDS2018.
+
+With these changes, the existing Observion preprocessing pipeline can be adapted for CICIDS2018 instead of developing an entirely new pipeline.
+
+EDA also identified several features that contribute no useful information to the model's prediction because they are duplicated, constant, or otherwise provide no additional predictive value. These features have therefore been selected for removal:
+
+1. Bwd PSH Flags
+2. Fwd URG Flags
+3. Bwd URG Flags
+4. CWE Flag Count
+5. Fwd Byts/b Avg
+6. Fwd Pkts/b Avg
+7. Fwd Blk Rate Avg
+8. Bwd Byts/b Avg
+9. Bwd Pkts/b Avg
+10. Bwd Blk Rate Avg
+11. Subflow Fwd Pkts
+12. Subflow Bwd Pkts
+13. Subflow Bwd Byts
+14. Fwd Seg Size Avg
+15. Bwd Seg Size Avg

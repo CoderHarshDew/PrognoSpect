@@ -5,3 +5,4 @@
 *.pyc
 /dataset/
 /out/
+logs/
