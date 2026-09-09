@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>PrognoSpect | Dashboard</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+<div class="dashboard-page">
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <span class="logo-symbol">◈</span>
+
+            <div>
+
+                <h2>PROGNOSPECT</h2>
+
+                <p>PREDICTIVE CYBER DEFENCE</p>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a href="dashboard.html" class="active">
+                <span>▣</span>
+                Dashboard
+            </a>
+
+            <a href="trajectory.html">
+                <span>⌁</span>
+                Trajectory
+            </a>
+
+            <a href="prediction.html">
+                <span>◈</span>
+                Future Prediction
+            </a>
+
+            <a href="attack-map.html">
+                <span>◇</span>
+                Attack Map
+            </a>
+
+            <a href="explain-ai.html">
+                <span>✦</span>
+                Explainable AI
+            </a>
+
+            <a href="hosts.html">
+                <span>▤</span>
+                Host Intelligence
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="simulation-status">
+
+                <span class="status-dot"></span>
+
+                <div>
+
+                    <strong>SIMULATED MODE</strong>
+
+                    <small>
+                        Frontend Demonstration
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <a href="index.html" class="logout">
+                ← Exit Platform
+            </a>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
+
+    <main class="dashboard-main">
+
+
+        <!-- HEADER -->
+
+        <header class="dashboard-header">
+
+            <div>
+
+                <span class="page-label">
+                    CYBER DEFENCE COMMAND CENTER
+                </span>
+
+                <h1>
+                    Network Overview
+                </h1>
+
+                <p>
+                    Monitor current network state and
+                    predicted attack progression.
+                </p>
+
+            </div>
+
+
+            <div class="header-status">
+
+                <span class="status-dot"></span>
+
+                SYSTEM ONLINE
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================
+             KPI CARDS
+        ========================== -->
+
+        <section class="kpi-grid">
+
+
+            <!-- NETWORK RISK -->
+
+            <div class="kpi-card">
+
+                <span class="kpi-label">
+                    NETWORK RISK
+                </span>
+
+                <strong class="risk-number"
+                        id="riskScore">
+                    45
+                </strong>
+
+                <span class="risk-level"
+                      id="riskLevel">
+                    MEDIUM RISK
+                </span>
+
+            </div>
+
+
+
+            <!-- ACTIVE THREATS -->
+
+            <div class="kpi-card">
+
+                <span class="kpi-label">
+                    ACTIVE THREATS
+                </span>
+
+                <strong>
+                    04
+                </strong>
+
+                <span class="kpi-description">
+                    Threat indicators detected
+                </span>
+
+            </div>
+
+
+
+            <!-- MONITORED HOSTS -->
+
+            <div class="kpi-card">
+
+                <span class="kpi-label">
+                    MONITORED HOSTS
+                </span>
+
+                <strong>
+                    24
+                </strong>
+
+                <span class="kpi-description">
+                    Network nodes
+                </span>
+
+            </div>
+
+
+
+            <!-- PREDICTION CONFIDENCE -->
+
+            <div class="kpi-card">
+
+                <span class="kpi-label">
+                    PREDICTION CONFIDENCE
+                </span>
+
+                <strong id="confidenceScore">
+                    86%
+                </strong>
+
+                <span class="kpi-description">
+                    World Model confidence
+                </span>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================
+             MAIN GRID
+        ========================== -->
+
+        <section class="dashboard-grid">
+
+
+            <!-- NETWORK STATE -->
+
+            <div class="dashboard-card network-state">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="card-label">
+                            CURRENT NETWORK STATE
+                        </span>
+
+                        <h2>
+                            Threat Progression
+                        </h2>
+
+                    </div>
+
+                    <span class="live-badge">
+                        LIVE SIMULATION
+                    </span>
+
+                </div>
+
+
+                <div class="state-flow">
+
+
+                    <!-- STAGE 1 -->
+
+                    <div class="state-node normal"
+                         id="stageInitial">
+
+                        <span>01</span>
+
+                        <strong>
+                            Initial Access
+                        </strong>
+
+                        <small>
+                            Entry point
+                        </small>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <!-- STAGE 2 -->
+
+                    <div class="state-node"
+                         id="stageDiscovery">
+
+                        <span>02</span>
+
+                        <strong>
+                            Discovery
+                        </strong>
+
+                        <small id="stageDiscoveryLabel">
+                            Future stage
+                        </small>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <!-- STAGE 3 -->
+
+                    <div class="state-node"
+                         id="stageLateral">
+
+                        <span>03</span>
+
+                        <strong>
+                            Lateral Movement
+                        </strong>
+
+                        <small id="stageLateralLabel">
+                            Future stage
+                        </small>
+
+                    </div>
+
+
+                    <div class="flow-line"></div>
+
+
+                    <!-- STAGE 4 -->
+
+                    <div class="state-node"
+                         id="stageExfiltration">
+
+                        <span>04</span>
+
+                        <strong>
+                            Exfiltration
+                        </strong>
+
+                        <small>
+                            Future stage
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- RISK -->
+
+            <div class="dashboard-card risk-card">
+
+                <div class="card-header">
+
+                    <span class="card-label">
+                        PREDICTIVE RISK
+                    </span>
+
+                </div>
+
+
+                <div class="risk-gauge">
+
+                    <div class="gauge-inner">
+
+                        <strong id="gaugeRisk">
+                            45
+                        </strong>
+
+                        <span>
+                            / 100
+                        </span>
+
+                    </div>
+
+                </div>
+
+
+                <p class="risk-title"
+                   id="riskTitle">
+
+                    MEDIUM RISK
+
+                </p>
+
+
+                <p class="risk-text"
+                   id="riskDescription">
+
+                    Network behaviour is being monitored
+                    for convergence toward compromise.
+
+                </p>
+
+            </div>
+
+
+
+            <!-- ATTACK TRAJECTORY -->
+
+            <div class="dashboard-card trajectory-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="card-label">
+                            ATTACK TRAJECTORY
+                        </span>
+
+                        <h2>
+                            Behaviour Evolution
+                        </h2>
+
+                    </div>
+
+                    <span class="prediction-tag">
+                        K = 3
+                    </span>
+
+                </div>
+
+
+                <div class="trajectory-chart">
+
+                    <div class="chart-line"></div>
+
+
+                    <div class="chart-point point-1">
+                        <span>Initial</span>
+                    </div>
+
+
+                    <div class="chart-point point-2">
+                        <span>Discovery</span>
+                    </div>
+
+
+                    <div class="chart-point point-3">
+                        <span>Lateral</span>
+                    </div>
+
+
+                    <div class="chart-point point-4">
+                        <span>Exfiltration?</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- NEXT PREDICTION -->
+
+            <div class="dashboard-card prediction-card">
+
+                <div class="card-header">
+
+                    <span class="card-label">
+                        NEXT PREDICTED STAGE
+                    </span>
+
+                </div>
+
+
+                <div class="prediction-main">
+
+                    <span class="prediction-number">
+                        +1
+                    </span>
+
+                    <div>
+
+                        <h2 id="predictionStage">
+                            Discovery
+                        </h2>
+
+                        <p>
+                            Confidence:
+                            <span id="predictionConfidence">
+                                86%
+                            </span>
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="confidence-bar">
+
+                    <div id="confidenceBar"></div>
+
+                </div>
+
+
+                <small>
+                    Predicted from current network state
+                </small>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================
+             BOTTOM SECTION
+        ========================== -->
+
+        <section class="bottom-grid">
+
+
+            <!-- ALERTS -->
+
+            <div class="dashboard-card alerts-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="card-label">
+                            SECURITY EVENTS
+                        </span>
+
+                        <h2>
+                            Recent Alerts
+                        </h2>
+
+                    </div>
+
+                    <span class="alert-count">
+                        04 ACTIVE
+                    </span>
+
+                </div>
+
+
+                <div class="alert-row">
+
+                    <span class="alert-indicator high"></span>
+
+                    <div>
+
+                        <strong>
+                            Suspicious SMB Activity
+                        </strong>
+
+                        <small>
+                            Host-07 → Host-12
+                        </small>
+
+                    </div>
+
+                    <span>
+                        HIGH
+                    </span>
+
+                </div>
+
+
+
+                <div class="alert-row">
+
+                    <span class="alert-indicator medium"></span>
+
+                    <div>
+
+                        <strong>
+                            Unusual Port Behaviour
+                        </strong>
+
+                        <small>
+                            Host-03
+                        </small>
+
+                    </div>
+
+                    <span>
+                        MEDIUM
+                    </span>
+
+                </div>
+
+
+
+                <div class="alert-row">
+
+                    <span class="alert-indicator high"></span>
+
+                    <div>
+
+                        <strong>
+                            Internal Connection Spike
+                        </strong>
+
+                        <small>
+                            Host-12
+                        </small>
+
+                    </div>
+
+                    <span>
+                        HIGH
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- WORLD MODEL -->
+
+            <div class="dashboard-card model-card">
+
+                <div class="card-header">
+
+                    <span class="card-label">
+                        WORLD MODEL
+                    </span>
+
+                    <span class="live-badge">
+                        ACTIVE
+                    </span>
+
+                </div>
+
+
+                <div class="model-status">
+
+                    <div class="model-icon">
+                        ✦
+                    </div>
+
+                    <div>
+
+                        <h2>
+                            Predictive Engine
+                        </h2>
+
+                        <p>
+                            Temporal + Graph Reasoning
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="model-info">
+
+                    <div>
+
+                        <span>
+                            Current State
+                        </span>
+
+                        <strong id="currentState">
+                            Initial Access
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Rollout
+                        </span>
+
+                        <strong>
+                            3 Steps
+                        </strong>
+
+                    </div>
+
+
+                    <div>
+
+                        <span>
+                            Confidence
+                        </span>
+
+                        <strong id="modelConfidence">
+                            86%
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script src="js/app.js"></script>
+
+</body>
+
+</html>
