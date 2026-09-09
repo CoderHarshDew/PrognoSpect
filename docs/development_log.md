@@ -290,4 +290,40 @@ EDA also identified several features that contribute no useful information to th
 12. Subflow Bwd Pkts
 13. Subflow Bwd Byts
 14. Fwd Seg Size Avg
-15. Bwd Seg Size Avg
+15. Bwd Seg Size Avg_
+
+## Configuration Updates
+
+The existing **Observion preprocessing pipeline** was taken as the base for CICIDS2018. Its configuration files were modified and improved to match the structure and requirements of CICIDS2018, including renaming columns, removing or handling columns that differ from CICIDS2017, and adding rules for newly introduced useful columns.
+
+The updated configurations were then checked against the CICIDS2018 data to ensure that the pipeline correctly interpreted the available columns and their required processing rules.
+
+---
+
+## Cleaned Dataset Pipeline
+
+After fixing the configurations, the modified Observion pipeline was used to build a complete cleaning pipeline for CICIDS2018.
+
+The pipeline loads the dataset in **1-million-row chunks**, performs the required cleaning and validation operations on each chunk, and stores the processed results in Parquet format. This avoids requiring the entire dataset to be held in memory at once.
+
+Parquet was selected as the intermediate storage format because it provides more efficient storage than the original CSV representation and is better suited for subsequent large-scale data processing.
+
+---
+
+## Data Cleaning and Dtype Consistency
+
+The cleaning pipeline was configured to handle issues identified during dataset investigation, including **extra columns, duplicate header rows, invalid values, and dtype inconsistencies**.
+
+To ensure that different chunks use consistent data types before being written to Parquet, a `dtype_map` was introduced based on the expected schema.
+
+During dtype enforcement, some columns that were defined as `int16` in the `validation_schema` contained values outside the valid `int16` range. Rather than forcing an unsafe conversion, the affected columns were kept as `int64`. Floating-point columns were similarly retained as `float64`, providing a consistent and safe numerical representation across the processed chunks.
+
+---
+
+## Chunk-Level Preprocessing
+
+A row-index mismatch was encountered during chunked processing because a **single global preprocessing pipeline instance** was being reused for every chunk.
+
+The preprocessing pipeline maintained state that caused row indices to become inconsistent when processing subsequent chunks.
+
+This was resolved by creating a **separate preprocessing pipeline instance for each chunk**, allowing each chunk to be processed independently while maintaining the correct row indexing and preventing state from one chunk from affecting another.
