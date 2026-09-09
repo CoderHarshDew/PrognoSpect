@@ -86,7 +86,7 @@ def validate_schema(df: pd.DataFrame, schema_cfg: dict) -> SchemaResult:
                             out_of_range_count,
                         )
 
-        port_validation = schema_cfg['features']['Destination Port']['validation']
+        port_validation = schema_cfg['features']['Dst Port']['validation']
 
         invalid_dp = set()
 
@@ -96,27 +96,27 @@ def validate_schema(df: pd.DataFrame, schema_cfg: dict) -> SchemaResult:
         out_of_range_count = 0
 
         if not port_validation['allow_negative']:
-            negative_dp_mask = (numeric_df['Destination Port'] < 0) & (~ numeric_df['Destination Port'].isin(port_validation['sentinel']))
+            negative_dp_mask = (numeric_df['Dst Port'] < 0) & (~ numeric_df['Dst Port'].isin(port_validation['sentinel']))
             invalid_dp.update(np.flatnonzero(negative_dp_mask))
 
             negative_count = negative_dp_mask.sum()
             schema_result.negative_count += negative_count
 
         if not port_validation['allow_inf']:
-            inf_dp_mask = numeric_df['Destination Port'].isin([np.inf, -np.inf])
+            inf_dp_mask = numeric_df['Dst Port'].isin([np.inf, -np.inf])
             invalid_dp.update(np.flatnonzero(inf_dp_mask))
 
             inf_count = inf_dp_mask.sum()
             schema_result.inf_count += inf_count
 
         if not port_validation['allow_nan']:
-            nan_dp_mask = numeric_df['Destination Port'].isnull()
+            nan_dp_mask = numeric_df['Dst Port'].isnull()
             invalid_dp.update(np.flatnonzero(nan_dp_mask))
 
             nan_count = nan_dp_mask.sum()
             schema_result.nan_count += nan_count
 
-        out_of_range_dp_mask = ~ numeric_df['Destination Port'].between(
+        out_of_range_dp_mask = ~ numeric_df['Dst Port'].between(
             port_validation['minimum'],
             port_validation['maximum'] if port_validation['maximum'] is not None else np.inf
         )
@@ -126,11 +126,11 @@ def validate_schema(df: pd.DataFrame, schema_cfg: dict) -> SchemaResult:
         out_of_range_count = out_of_range_dp_mask.sum()
         schema_result.out_of_range_count += out_of_range_count
 
-        schema_result.invalid['Destination Port'] = invalid_dp
+        schema_result.invalid['Dst Port'] = invalid_dp
 
         if len(invalid_dp) > 0:
             logger.info(
-                "Schema 'Destination Port': Invalid Rows=%d | Negative=%d | NaN=%d | Inf=%d | OutOfRange=%d",
+                "Schema 'Dst Port': Invalid Rows=%d | Negative=%d | NaN=%d | Inf=%d | OutOfRange=%d",
                 len(invalid_dp),
                 negative_count,
                 nan_count,
@@ -138,6 +138,35 @@ def validate_schema(df: pd.DataFrame, schema_cfg: dict) -> SchemaResult:
                 out_of_range_count,
             )
 
+        timestamp_validation = schema_cfg['features']['Timestamp']['validation']
+
+        invalid_ts = set()
+
+        nan_count = 0
+
+        timestamp_series = pd.to_datetime(
+            df['Timestamp'],
+            format='%d/%m/%Y %H:%M:%S',
+            errors='coerce'
+        )
+
+        if not timestamp_validation['allow_nan']:
+            nan_ts_mask = timestamp_series.isnull()
+            invalid_ts.update(np.flatnonzero(nan_ts_mask))
+
+            nan_count = nan_ts_mask.sum()
+            schema_result.nan_count += nan_count
+
+        schema_result.invalid['Timestamp'] = invalid_ts
+
+        if len(invalid_ts) > 0:
+            logger.info(
+                "Schema 'Timestamp': Invalid Rows=%d | NaN=%d",
+                len(invalid_ts),
+                nan_count,
+            )
+
+        schema_result.invalid['Protocol'] = set()
         schema_result.invalid['Label'] = set()
 
         logger.info(
@@ -168,6 +197,7 @@ def validate_rules(df: pd.DataFrame, rules_cfg: dict) -> RuleResult:
 
     try:
         rule_result = RuleResult()
+        i = 0
 
         for rule in rules_cfg['rules']:
             rule_result.violator_counts[rule['id']] = 0
@@ -191,7 +221,7 @@ def validate_rules(df: pd.DataFrame, rules_cfg: dict) -> RuleResult:
                 for column in rule['columns']
             }
 
-            if rule['id'] == 'R019':
+            if rule['id'] == 'R015':
                 context['VALID_LABEL_SET'] = rules_cfg['VALID_LABEL_SET']
 
             result = ~ bind_var_and_evaluate(exp_f, **context)

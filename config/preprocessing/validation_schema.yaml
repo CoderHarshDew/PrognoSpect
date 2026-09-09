@@ -2,18 +2,8 @@ version: 1.0
 
 templates:
 
-  positive_uint16: &positive_uint16
-    dtype: uint16
-    validation:
-      allow_negative: false
-      allow_inf: false
-      allow_nan: false
-      minimum: 0
-      maximum: 65535
-      sentinel: []
-
-  positive_uint32: &positive_uint32
-    dtype: uint32
+  non_negative_integer: &non_negative_integer
+    dtype: Int64
     validation:
       allow_negative: false
       allow_inf: false
@@ -22,17 +12,7 @@ templates:
       maximum: null
       sentinel: []
 
-  positive_uint64: &positive_uint64
-    dtype: uint64
-    validation:
-      allow_negative: false
-      allow_inf: false
-      allow_nan: false
-      minimum: 0
-      maximum: null
-      sentinel: []
-
-  positive_float: &positive_float
+  non_negative_float: &non_negative_float
     dtype: float64
     validation:
       allow_negative: false
@@ -63,9 +43,9 @@ templates:
       sentinel: []
 
   tcp_window: &tcp_window
-    dtype: int32
+    dtype: Int64
     validation:
-      allow_negative: false
+      allow_negative: true
       allow_inf: false
       allow_nan: false
       minimum: 0
@@ -148,7 +128,7 @@ non_numeric_col:
 feature_groups:
 
   packet_counts:
-    template: *positive_uint32
+    template: *non_negative_integer
     unit: packet
     features:
       - Tot Fwd Pkts
@@ -156,7 +136,7 @@ feature_groups:
       - Fwd Act Data Pkts
 
   byte_counts:
-    template: *positive_uint64
+    template: *non_negative_integer
     unit: byte
     features:
       - TotLen Fwd Pkts
@@ -165,7 +145,7 @@ feature_groups:
       - Bwd Header Len
 
   iat_statistics:
-    template: *positive_float
+    template: *non_negative_float
     unit: microsecond
     features:
       - Flow IAT Mean
@@ -180,7 +160,7 @@ feature_groups:
       - Idle Std
 
   iat_totals:
-    template: *positive_uint64
+    template: *non_negative_integer
     unit: microsecond
     features:
       - Flow Duration
@@ -222,7 +202,7 @@ feature_groups:
       - Pkt Len Var
 
   rates:
-    template: *positive_float
+    template: *non_negative_float
     unit: rate
     features:
       - Flow Byts/s
@@ -240,7 +220,7 @@ feature_groups:
       - Fwd Seg Size Min
 
   tcp_flag_counts:
-    template: *positive_uint32
+    template: *non_negative_integer
     unit: count
     features:
       - Fwd PSH Flags
@@ -256,11 +236,11 @@ feature_groups:
 features:
 
   Dst Port:
-    <<: *positive_uint16
+    <<: *non_negative_integer
     unit: port
 
   Protocol:
-    <<: *positive_uint32
+    <<: *non_negative_integer
     unit: protocol
 
   Timestamp:
@@ -270,6 +250,6 @@ features:
       allow_nan: false
 
   Label:
-    dtype: category
+    dtype: string
     unit: label
     validation: {}

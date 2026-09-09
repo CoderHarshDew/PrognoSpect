@@ -4,7 +4,7 @@ from src.preprocessing.result import ValidationResult
 from src.core.logger import logger
 
 
-def initial_cleanup(df: pd.DataFrame, cleaning_cfg: dict):
+def initial_cleanup(df: pd.DataFrame, cleaning_cfg: dict, schema_cfg: dict):
     """Performs initial cleanup which includes:
 
     - Removing leading/trailing whitespaces.
@@ -14,14 +14,26 @@ def initial_cleanup(df: pd.DataFrame, cleaning_cfg: dict):
     - Resets index."""
 
     df.columns = df.columns.str.strip()
-    df["Label"] = (
-        df["Label"]
-        .str.replace("\uFFFD", "-", regex=False)
-    )
     df.drop_duplicates(inplace=True)
-    df = df.reset_index(drop=True)
 
     df = df.drop(columns=cleaning_cfg['columns_to_drop'])
+
+    header = df.columns
+
+    header_rows = (df.astype(str) == header).all(axis=1)
+
+    df = df.loc[~header_rows].copy()
+
+    non_numeric_cols = schema_cfg['non_numeric_col']
+
+    feature_cols = df.columns.drop(non_numeric_cols)
+
+    df[feature_cols] = df[feature_cols].apply(
+        pd.to_numeric,
+        errors="coerce"
+    )
+
+    df = df.reset_index(drop=True)
 
     logger.info('Performed initial cleanup on the dataset.')
 
