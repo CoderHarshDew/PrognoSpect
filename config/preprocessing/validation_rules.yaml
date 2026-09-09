@@ -1,0 +1,206 @@
+version: 1.0
+
+templates:
+
+  error: &error
+    severity: error
+    action: reject
+
+  warning: &warning
+    severity: warning
+    action: investigate
+
+  info: &info
+    severity: info
+    action: report
+
+
+VALID_LABEL_SET:
+  - Benign
+  - Bot
+  - Brute Force -Web
+  - Brute Force -XSS
+  - DDoS attacks-LOIC-HTTP
+  - DDoS attacks-HOIC
+  - DDoS attacks-LOIC-UDP
+  - DDOS attack-Hulk
+  - DDOS attack-GoldenEye
+  - DDOS attack-Slowloris
+  - DDOS attack-SlowHTTPTest
+  - FTP-BruteForce
+  - SSH-BruteForce
+  - Infilteration
+  - SQL Injection
+
+
+rules:
+
+  - id: R001
+    <<: *error
+    name: Destination Port Range
+    columns:
+      - Dst Port
+    expression: |
+      0 <= Dst Port <= 65535
+
+  - id: R002
+    <<: *error
+    name: Packet Length Ordering
+    columns:
+      - Pkt Len Min
+      - Pkt Len Mean
+      - Pkt Len Max
+    expression: |
+      Pkt Len Min <= Pkt Len Mean <= Pkt Len Max
+
+  - id: R003
+    <<: *error
+    name: Forward Packet Length Ordering
+    columns:
+      - Fwd Pkt Len Min
+      - Fwd Pkt Len Mean
+      - Fwd Pkt Len Max
+    expression: |
+      Fwd Pkt Len Min <= Fwd Pkt Len Mean <= Fwd Pkt Len Max
+
+  - id: R004
+    <<: *error
+    name: Backward Packet Length Ordering
+    columns:
+      - Bwd Pkt Len Min
+      - Bwd Pkt Len Mean
+      - Bwd Pkt Len Max
+    expression: |
+      Bwd Pkt Len Min <= Bwd Pkt Len Mean <= Bwd Pkt Len Max
+
+  - id: R005
+    <<: *error
+    name: Active Statistics Ordering
+    columns:
+      - Active Min
+      - Active Mean
+      - Active Max
+    expression: |
+      Active Min <= Active Mean <= Active Max
+
+  - id: R006
+    <<: *error
+    name: Idle Statistics Ordering
+    columns:
+      - Idle Min
+      - Idle Mean
+      - Idle Max
+    expression: |
+      Idle Min <= Idle Mean <= Idle Max
+
+  - id: R007
+    <<: *error
+    name: Packet Count Consistency
+    columns:
+      - Fwd Act Data Pkts
+      - Tot Fwd Pkts
+    expression: |
+      Fwd Act Data Pkts <= Tot Fwd Pkts
+
+  - id: R008
+    <<: *warning
+    name: Header Length Validity
+    columns:
+      - Fwd Header Len
+      - Bwd Header Len
+    expression: |
+      Fwd Header Len >= 0
+      AND
+      Bwd Header Len >= 0
+
+  - id: R009
+    <<: *warning
+    name: Flow Duration Consistency
+    columns:
+      - Active Max
+      - Idle Max
+      - Flow Duration
+    expression: |
+      Active Max <= Flow Duration
+      AND
+      Idle Max <= Flow Duration
+
+  - id: R010
+    <<: *warning
+    name: IAT Consistency
+    columns:
+      - Flow IAT Min
+      - Flow IAT Mean
+      - Flow IAT Max
+    expression: |
+      Flow IAT Min <= Flow IAT Mean <= Flow IAT Max
+
+  - id: R011
+    <<: *warning
+    name: Forward IAT Consistency
+    columns:
+      - Fwd IAT Min
+      - Fwd IAT Mean
+      - Fwd IAT Max
+    expression: |
+      Fwd IAT Min <= Fwd IAT Mean <= Fwd IAT Max
+
+  - id: R012
+    <<: *warning
+    name: Backward IAT Consistency
+    columns:
+      - Bwd IAT Min
+      - Bwd IAT Mean
+      - Bwd IAT Max
+    expression: |
+      Bwd IAT Min <= Bwd IAT Mean <= Bwd IAT Max
+
+  - id: R013
+    <<: *warning
+    name: TCP Window Sentinel
+    description: >
+      -1 is allowed as a sentinel value for Init Bwd Win Byts.
+    columns:
+      - Init Bwd Win Byts
+    expression: |
+      Init Bwd Win Byts == -1
+      OR
+      (
+        0 <= Init Bwd Win Byts <= 65535
+      )
+
+  - id: R014
+    <<: *info
+    name: Rate Availability
+    columns:
+      - Flow Duration
+    expression: |
+      Flow Duration > 0
+
+  - id: R015
+    <<: *info
+    name: Known Label
+    columns:
+      - Label
+    expression: |
+      Label in VALID_LABEL_SET
+
+
+non_repairable_column_related_rules:
+  - R001
+  - R002
+  - R003
+  - R004
+  - R005
+  - R006
+  - R007
+  - R008
+  - R009
+  - R010
+  - R011
+  - R012
+  - R013
+  - R014
+  - R015
+
+repairable_column_related_rules: null
