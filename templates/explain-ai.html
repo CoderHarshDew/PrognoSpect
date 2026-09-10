@@ -1,28 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Host Intelligence | PrognoSpect</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-    <link rel="stylesheet" href="css/style.css">
+    <title>PrognoSpect | Explainable AI</title>
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../static/css/style.css">
+
 </head>
 
-<body class="dashboard-page">
 
-    <!-- SIDEBAR -->
+<body>
+
+<div class="dashboard-page">
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
     <aside class="sidebar">
 
         <div class="sidebar-logo">
-            <div class="logo-mark">P</div>
+
+            <span class="logo-symbol">◈</span>
 
             <div>
+
                 <h2>PROGNOSPECT</h2>
-                <span>PREDICTIVE CYBER DEFENCE</span>
+
+                <p>PREDICTIVE CYBER DEFENCE</p>
+
             </div>
+
         </div>
 
 
@@ -33,7 +48,7 @@
                 Dashboard
             </a>
 
-            <a href="trajectory.html">
+            <a href="../trajectory.html">
                 <span>⌁</span>
                 Trajectory
             </a>
@@ -48,12 +63,12 @@
                 Attack Map
             </a>
 
-            <a href="explain-ai.html">
+            <a href="explain-ai.html" class="active">
                 <span>✦</span>
                 Explainable AI
             </a>
 
-            <a href="hosts.html" class="active">
+            <a href="hosts.html">
                 <span>▤</span>
                 Host Intelligence
             </a>
@@ -64,17 +79,24 @@
         <div class="sidebar-bottom">
 
             <div class="simulation-status">
+
                 <span class="status-dot"></span>
 
                 <div>
+
                     <strong>SIMULATED MODE</strong>
-                    <small>Frontend Demonstration</small>
+
+                    <small>
+                        Frontend Demonstration
+                    </small>
+
                 </div>
+
             </div>
 
+
             <a href="index.html" class="logout">
-                <span>↪</span>
-                Exit
+                ← Exit Platform
             </a>
 
         </div>
@@ -82,91 +104,107 @@
     </aside>
 
 
-    <!-- MAIN -->
+
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
+
     <main class="dashboard-main">
+
+
+        <!-- HEADER -->
 
         <header class="dashboard-header">
 
             <div>
 
                 <span class="page-label">
-                    HOST-LEVEL INTELLIGENCE
+                    MODEL INTERPRETABILITY
                 </span>
 
-                <h1>Host Intelligence</h1>
+                <h1>
+                    Explainable AI
+                </h1>
 
                 <p>
-                    Host behaviour analysis and predictive host intelligence
-                    module.
+                    Understand why the World Model predicts
+                    a particular attack trajectory.
                 </p>
 
             </div>
 
 
             <div class="header-status">
+
                 <span class="status-dot"></span>
+
                 DEVELOPMENT
+
             </div>
 
         </header>
 
 
-        <!-- WIP -->
-        <div class="wip-container">
+
+        <!-- =========================
+             WIP CARD
+        ========================== -->
+
+        <section class="wip-container">
 
             <div class="wip-card">
 
                 <div class="wip-icon">
-                    ▤
+                    ✦
                 </div>
+
 
                 <span class="wip-badge">
                     WORK IN PROGRESS
                 </span>
 
+
                 <h2>
-                    Host Intelligence Module
+                    Explainable AI
                 </h2>
+
 
                 <p>
                     This module is currently under development.
-                    Host-level behavioural analysis and predictive
-                    intelligence will be integrated in a future version.
                 </p>
 
 
-                <div class="wip-description">
+                <p class="wip-description">
 
-                    <span>PLANNED CAPABILITIES</span>
+                    The future version will provide
+                    SHAP-based feature importance,
+                    network evidence, influential hosts
+                    and model reasoning behind each
+                    prediction.
 
-                </div>
+                </p>
 
 
                 <div class="wip-features">
 
                     <div>
-                        <span>01</span>
-                        Host Behaviour Analysis
+                        <span>◈</span>
+                        SHAP Feature Importance
                     </div>
 
                     <div>
-                        <span>02</span>
-                        Host Risk Scoring
+                        <span>◈</span>
+                        Network Evidence
                     </div>
 
                     <div>
-                        <span>03</span>
-                        Predicted Target Identification
+                        <span>◈</span>
+                        Host & Edge Importance
                     </div>
 
                     <div>
-                        <span>04</span>
-                        Host-to-Host Attack Propagation
-                    </div>
-
-                    <div>
-                        <span>05</span>
-                        Node-Level Future Prediction
+                        <span>◈</span>
+                        Prediction Reasoning
                     </div>
 
                 </div>
@@ -176,30 +214,22 @@
 
                     <span class="status-dot"></span>
 
-                    HOST INTELLIGENCE ENGINE —
-                    IMPLEMENTATION PENDING
+                    XAI ENGINE — IMPLEMENTATION PENDING
 
                 </div>
 
             </div>
 
-        </div>
+        </section>
 
-
-        <div class="simulation-note">
-
-            <span>●</span>
-
-            This interface is part of the
-            <strong>PrognoSpect frontend prototype</strong>.
-            No real hosts are being monitored.
-
-        </div>
 
     </main>
 
+</div>
 
-    <script src="js/app.js"></script>
+
+<script src="../static/js/app.js"></script>
 
 </body>
+
 </html>

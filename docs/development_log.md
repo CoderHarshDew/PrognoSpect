@@ -327,3 +327,22 @@ A row-index mismatch was encountered during chunked processing because a **singl
 The preprocessing pipeline maintained state that caused row indices to become inconsistent when processing subsequent chunks.
 
 This was resolved by creating a **separate preprocessing pipeline instance for each chunk**, allowing each chunk to be processed independently while maintaining the correct row indexing and preventing state from one chunk from affecting another.
+
+## Demonstrative Frontend
+
+A standalone web frontend was developed to provide an early demonstration of the intended PrognoSpect system. The frontend has not yet been connected to the backend and currently operates independently.
+
+The frontend currently contains the following pages:
+
+* `index.html`
+* `dashboard.html`
+* `hosts.html`
+* `attack-map.html`
+* `prediction.html`
+* `explain-ai.html`
+
+Some components, such as the Explainable AI interface, are outside the scope of the current version and have therefore been marked as **WIP (Work In Progress)**.
+
+The current frontend simulates the appearance and behavior of a working system. The displayed values are not produced by the actual backend or ML models; they are generated or changed randomly within predefined value ranges to demonstrate how the interface would behave with changing system data.
+
+The frontend will be connected to the actual backend and model outputs in subsequent development.
