@@ -2,8 +2,7 @@
 
 import torch
 import torch.nn as nn
-
-from torch_geometric.nn import GINEConv
+from  torch_geometric.nn import GINEConv
 
 
 class GraphEncoder(nn.Module):

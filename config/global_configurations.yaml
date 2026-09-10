@@ -1,3 +1,4 @@
 version: 1.0
 
 raw_dataset_path: !!str "dataset/raw/"
+cleaned_dataset_path: !!str "dataset/cleaned/cleaned_dataset.parquet"

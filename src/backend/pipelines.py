@@ -3,21 +3,26 @@ import pandas as pd
 from pathlib import Path
 import pyarrow as pa
 import pyarrow.parquet as pq
-
+import torch
 from src.preprocessing.cleaning import initial_cleanup
 from src.preprocessing.preprocessing import PreprocessingPipeline
 from src.core.config import config_loader
 from src.core.logger import logger
+from src.ml.graph_encoder import GraphEncoder
+from src.preprocessing.state_builder import TemporalStateBuilder
+from src.database.parquet_loader import load_parquet_chunks
 
 
 VALIDATION_SCHEMA_CFG_PATH = Path('config/preprocessing/validation_schema.yaml')
 VALIDATION_RULES_CFG_PATH = Path('config/preprocessing/validation_rules.yaml')
 CLEANING_CFG_PATH = Path('config/preprocessing/cleaning.yaml')
 PIPELINE_CFG_PATH = Path('config/preprocessing/pipeline.yaml')
+STATE_BUILDER_CFG_PATH = Path('config/preprocessing/state_builder.yaml')
 REPORT_PATH = Path('reports/')
+GLOBAL_CFG_PATH = Path('config/global_configuration.yaml')
 
 
-def load_configurations():
+def load_cleaning_configurations():
     """Loads all configurations."""
 
     logger.info("Loading preprocessing configurations.")
@@ -37,7 +42,16 @@ def load_configurations():
     return schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg
 
 
+def load_graph_builder_configurations():
+
+    state_builder_cfg = config_loader(STATE_BUILDER_CFG_PATH)
+    global_cfg = config_loader(GLOBAL_CFG_PATH)
+
+    return state_builder_cfg, global_cfg
+
+
 def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), output_path: str | Path = Path('../../dataset/cleaned/cleaned_dataset.parquet')):
+
     """Cleans the raw dataset and stores the result as a Parquet file."""
 
     raw_dataset_path = Path(raw_dataset_path)
@@ -79,7 +93,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
     writer = None
 
     try:
-        schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg = load_configurations()
+        schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg = load_cleaning_configurations()
 
         if not all([schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg]):
             logger.error("One or more preprocessing configurations are empty or failed to load.")
@@ -250,3 +264,109 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
             except Exception:
                 logger.exception("Failed to close Parquet writer.")
                 raise
+
+
+def graph_builder_pipeline():
+    logger.info("Starting temporal state and graph representation pipeline.")
+
+    state_builder_cfg, global_cfg = load_graph_builder_configurations()
+
+    chunk_count = 0
+
+    for chunk in load_parquet_chunks(path=global_cfg['cleaned_dataset_path']):
+        chunk_count += 1
+        logger.info(f"Processing chunk {chunk_count}.")
+
+        state_builder = TemporalStateBuilder(window_seconds=state_builder_cfg['window_seconds'])
+        states = state_builder.build_states(chunk)
+
+        logger.info(f"Chunk {chunk_count}: generated {len(states)} temporal states.")
+
+        if not states:
+            logger.warning(f"Chunk {chunk_count}: no temporal states generated.")
+            return
+
+        first_state = states[0]
+
+        logger.debug(f"Chunk {chunk_count}: first state timestamp: {first_state['timestamp']}")
+        logger.debug(f"Chunk {chunk_count}: hosts={len(first_state['host_features'])}, edges={len(first_state['graph'])}")
+
+        graph = first_state["graph"]
+        hosts = first_state["host_features"]
+
+        if len(hosts) < 1:
+            logger.warning(f"Chunk {chunk_count}: no host features available.")
+            return
+
+        node_feature_names = [
+            "out_flows",
+            "unique_destinations",
+            "unique_dst_ports",
+            "mean_duration"
+        ]
+
+        node_features = []
+        node_names = list(hosts.keys())
+
+        for host in node_names:
+            feature_vector = []
+
+            for feature_name in node_feature_names:
+                value = hosts[host].get(feature_name, 0.0)
+                feature_vector.append(float(value))
+
+            node_features.append(feature_vector)
+
+        x = torch.tensor(node_features, dtype=torch.float32)
+
+        node_to_index = {host: i for i, host in enumerate(node_names)}
+
+        edge_list = []
+        edge_features = []
+
+        for (src, dst), features in graph.items():
+            if src not in node_to_index or dst not in node_to_index:
+                continue
+
+            src_index = node_to_index[src]
+            dst_index = node_to_index[dst]
+
+            edge_list.append([src_index, dst_index])
+
+            edge_features.append([
+                float(features.get("flow_count", 0.0)),
+                float(features.get("mean_duration", 0.0))
+            ])
+
+        if not edge_list:
+            logger.warning(f"Chunk {chunk_count}: no valid graph edges.")
+            return
+
+        edge_index = torch.tensor(edge_list, dtype=torch.long).t().contiguous()
+        edge_attr = torch.tensor(edge_features, dtype=torch.float32)
+
+        logger.info(
+            f"Chunk {chunk_count}: graph prepared with "
+            f"{x.shape[0]} nodes and {edge_index.shape[1]} edges."
+        )
+
+        logger.debug(
+            f"Chunk {chunk_count}: node_features={x.shape}, "
+            f"edge_index={edge_index.shape}, edge_features={edge_attr.shape}"
+        )
+
+        node_dim = x.shape[1]
+        edge_dim = edge_attr.shape[1]
+
+        logger.info(f"Chunk {chunk_count}: initializing graph encoder.")
+
+        encoder = GraphEncoder(node_dim=node_dim, edge_dim=edge_dim, hidden_dim=state_builder_cfg['hidden_dim'])
+
+        node_latent, edge_latent = encoder(x, edge_index, edge_attr)
+
+        logger.info(
+            f"Chunk {chunk_count}: graph encoding completed. "
+            f"Node latent shape={node_latent.shape}, edge latent shape={edge_latent.shape}."
+        )
+
+    logger.info(f"Temporal state and graph representation pipeline completed successfully. Processed {chunk_count} chunks.")
