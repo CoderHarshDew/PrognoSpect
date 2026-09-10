@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>PrognoSpect | Attack Map</title>
+
+    <link rel="stylesheet"
+          href="css/style.css">
+
+</head>
+
+
+<body>
+
+<div class="dashboard-page">
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <span class="logo-symbol">◈</span>
+
+            <div>
+
+                <h2>PROGNOSPECT</h2>
+
+                <p>
+                    PREDICTIVE CYBER DEFENCE
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a href="dashboard.html">
+                <span>▣</span>
+                Dashboard
+            </a>
+
+            <a href="trajectory.html">
+                <span>⌁</span>
+                Trajectory
+            </a>
+
+            <a href="prediction.html">
+                <span>◉</span>
+                Future Prediction
+            </a>
+
+            <a href="attack-map.html"
+               class="active">
+
+                <span>◇</span>
+                Attack Map
+
+            </a>
+
+            <a href="explain-ai.html">
+                <span>✦</span>
+                Explainable AI
+            </a>
+
+            <a href="hosts.html">
+                <span>▤</span>
+                Host Intelligence
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="simulation-status">
+
+                <span class="status-dot"></span>
+
+                <div>
+
+                    <strong>
+                        SIMULATED MODE
+                    </strong>
+
+                    <small>
+                        Frontend Demonstration
+                    </small>
+
+                </div>
+
+            </div>
+
+
+            <a href="index.html"
+               class="logout">
+
+                ← Exit Platform
+
+            </a>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================
+         MAIN
+    ========================== -->
+
+    <main class="dashboard-main">
+
+
+        <!-- HEADER -->
+
+        <header class="dashboard-header">
+
+            <div>
+
+                <span class="page-label">
+                    NETWORK GRAPH INTELLIGENCE
+                </span>
+
+                <h1>
+                    Attack Map
+                </h1>
+
+                <p>
+                    Visualize suspicious host relationships
+                    and predicted attack progression.
+                </p>
+
+            </div>
+
+
+            <div class="header-status">
+
+                <span class="status-dot"></span>
+
+                GRAPH ONLINE
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================
+             GRAPH CARD
+        ========================== -->
+
+        <section class="dashboard-card attack-map-card">
+
+
+            <div class="card-header">
+
+                <div>
+
+                    <span class="card-label">
+                        ATTACK GRAPH
+                    </span>
+
+                    <h2>
+                        Network Threat Topology
+                    </h2>
+
+                </div>
+
+
+                <span class="live-badge">
+                    LIVE SIMULATION
+                </span>
+
+            </div>
+
+
+
+            <!-- GRAPH -->
+
+            <div class="attack-graph">
+
+
+                <!-- CONNECTIONS -->
+
+                <svg class="graph-lines"
+                     viewBox="0 0 1000 600"
+                     preserveAspectRatio="none">
+
+
+                    <line
+                        x1="150"
+                        y1="300"
+                        x2="350"
+                        y2="200"
+                        class="graph-edge edge-active"
+                    />
+
+
+                    <line
+                        x1="350"
+                        y1="200"
+                        x2="550"
+                        y2="300"
+                        class="graph-edge edge-active"
+                    />
+
+
+                    <line
+                        x1="350"
+                        y1="200"
+                        x2="550"
+                        y2="100"
+                        class="graph-edge"
+                    />
+
+
+                    <line
+                        x1="350"
+                        y1="200"
+                        x2="550"
+                        y2="500"
+                        class="graph-edge"
+                    />
+
+
+                    <line
+                        x1="550"
+                        y1="300"
+                        x2="780"
+                        y2="200"
+                        class="graph-edge edge-predicted"
+                    />
+
+
+                    <line
+                        x1="780"
+                        y1="200"
+                        x2="900"
+                        y2="350"
+                        class="graph-edge"
+                    />
+
+                </svg>
+
+
+
+                <!-- ATTACKER -->
+
+                <div class="graph-node attacker"
+                     style="left: 10%; top: 46%;">
+
+                    <span>!</span>
+
+                    <strong>
+                        ATTACKER
+                    </strong>
+
+                    <small>
+                        External Source
+                    </small>
+
+                </div>
+
+
+
+                <!-- HOST 07 -->
+
+                <div class="graph-node active"
+                     style="left: 29%; top: 29%;">
+
+                    <span>07</span>
+
+                    <strong>
+                        Host-07
+                    </strong>
+
+                    <small>
+                        Compromised
+                    </small>
+
+                </div>
+
+
+
+                <!-- HOST 03 -->
+
+                <div class="graph-node normal"
+                     style="left: 50%; top: 8%;">
+
+                    <span>03</span>
+
+                    <strong>
+                        Host-03
+                    </strong>
+
+                    <small>
+                        Normal
+                    </small>
+
+                </div>
+
+
+
+                <!-- HOST 12 -->
+
+                <div class="graph-node predicted"
+                     style="left: 50%; top: 46%;">
+
+                    <span>12</span>
+
+                    <strong>
+                        Host-12
+                    </strong>
+
+                    <small>
+                        Predicted Target
+                    </small>
+
+                </div>
+
+
+
+                <!-- HOST 05 -->
+
+                <div class="graph-node normal"
+                     style="left: 50%; top: 80%;">
+
+                    <span>05</span>
+
+                    <strong>
+                        Host-05
+                    </strong>
+
+                    <small>
+                        Normal
+                    </small>
+
+                </div>
+
+
+
+                <!-- SERVER -->
+
+                <div class="graph-node predicted"
+                     style="left: 73%; top: 29%;">
+
+                    <span>SRV</span>
+
+                    <strong>
+                        Data Server
+                    </strong>
+
+                    <small>
+                        High Value Asset
+                    </small>
+
+                </div>
+
+
+
+                <!-- DATABASE -->
+
+                <div class="graph-node normal"
+                     style="left: 87%; top: 54%;">
+
+                    <span>DB</span>
+
+                    <strong>
+                        Database
+                    </strong>
+
+                    <small>
+                        Protected
+                    </small>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- LEGEND -->
+
+            <div class="graph-legend">
+
+                <div>
+                    <span class="legend-dot attacker-dot"></span>
+                    Attacker
+                </div>
+
+                <div>
+                    <span class="legend-dot active-dot"></span>
+                    Active Host
+                </div>
+
+                <div>
+                    <span class="legend-dot predicted-dot"></span>
+                    Predicted Target
+                </div>
+
+                <div>
+                    <span class="legend-dot normal-dot"></span>
+                    Normal Host
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- =========================
+             GRAPH INFORMATION
+        ========================== -->
+
+        <section class="bottom-grid">
+
+
+            <div class="dashboard-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="card-label">
+                            CURRENT PATH
+                        </span>
+
+                        <h2>
+                            Observed Attack Chain
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="attack-path">
+
+                    <span>
+                        ATTACKER
+                    </span>
+
+                    <b>→</b>
+
+                    <span>
+                        HOST-07
+                    </span>
+
+                    <b>→</b>
+
+                    <span>
+                        HOST-12
+                    </span>
+
+                    <b>→</b>
+
+                    <span>
+                        DATA SERVER
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="dashboard-card">
+
+                <div class="card-header">
+
+                    <div>
+
+                        <span class="card-label">
+                            PREDICTIVE INSIGHT
+                        </span>
+
+                        <h2>
+                            Next Possible Target
+                        </h2>
+
+                    </div>
+
+                </div>
+
+
+                <div class="prediction-main">
+
+                    <span class="prediction-number">
+                        +1
+                    </span>
+
+                    <div>
+
+                        <h2>
+                            Data Server
+                        </h2>
+
+                        <p>
+                            Predicted from network topology
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+<script src="js/app.js"></script>
+
+</body>
+
+</html>

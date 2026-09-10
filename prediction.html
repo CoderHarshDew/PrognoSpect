@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>PrognoSpect | Future Prediction</title>
+
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+
+<body>
+
+<div class="dashboard-page">
+
+
+    <!-- =========================
+         SIDEBAR
+    ========================== -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+
+            <span class="logo-symbol">◈</span>
+
+            <div>
+                <h2>PROGNOSPECT</h2>
+                <p>PREDICTIVE CYBER DEFENCE</p>
+            </div>
+
+        </div>
+
+
+        <nav class="sidebar-nav">
+
+            <a href="dashboard.html">
+                <span>▣</span>
+                Dashboard
+            </a>
+
+            <a href="trajectory.html">
+                <span>⌁</span>
+                Trajectory
+            </a>
+
+            <a href="prediction.html" class="active">
+                <span>◈</span>
+                Future Prediction
+            </a>
+
+            <a href="attack-map.html">
+                <span>◇</span>
+                Attack Map
+            </a>
+
+            <a href="explain-ai.html">
+                <span>✦</span>
+                Explainable AI
+            </a>
+
+            <a href="hosts.html">
+                <span>▤</span>
+                Host Intelligence
+            </a>
+
+        </nav>
+
+
+        <div class="sidebar-bottom">
+
+            <div class="simulation-status">
+
+                <span class="status-dot"></span>
+
+                <div>
+                    <strong>SIMULATED MODE</strong>
+
+                    <small>
+                        Frontend Demonstration
+                    </small>
+                </div>
+
+            </div>
+
+
+            <a href="index.html" class="logout">
+                ← Exit Platform
+            </a>
+
+        </div>
+
+    </aside>
+
+
+
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
+
+    <main class="dashboard-main">
+
+
+        <!-- HEADER -->
+
+        <header class="dashboard-header">
+
+            <div>
+
+                <span class="page-label">
+                    WORLD MODEL / PREDICTIVE ROLLOUT
+                </span>
+
+                <h1>
+                    Future Prediction
+                </h1>
+
+                <p>
+                    Forecast possible attack progression
+                    from the current network state.
+                </p>
+
+            </div>
+
+
+            <div class="header-status">
+
+                <span class="status-dot"></span>
+
+                WORLD MODEL ONLINE
+
+            </div>
+
+        </header>
+
+
+
+        <!-- =========================
+             CURRENT STATE
+        ========================== -->
+
+        <section class="dashboard-card prediction-current">
+
+            <div class="card-header">
+
+                <div>
+
+                    <span class="card-label">
+                        CURRENT NETWORK STATE
+                    </span>
+
+                    <h2 id="predictionCurrentState">
+                        Initial Access
+                    </h2>
+
+                </div>
+
+                <span class="live-badge">
+                    OBSERVED
+                </span>
+
+            </div>
+
+
+            <div class="prediction-state-content">
+
+                <div class="state-info">
+
+                    <span>
+                        Current Network Condition
+                    </span>
+
+                    <strong id="predictionCurrentDescription">
+                        Initial access activity detected.
+                    </strong>
+
+                </div>
+
+
+                <div class="state-risk">
+
+                    <span>
+                        Current Risk
+                    </span>
+
+                    <strong id="predictionCurrentRisk">
+                        45
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- =========================
+             K-STEP PREDICTION
+        ========================== -->
+
+        <section class="prediction-rollout">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="page-label">
+                        K-STEP ROLLOUT
+                    </span>
+
+                    <h2>
+                        Predicted Attack Trajectory
+                    </h2>
+
+                </div>
+
+                <span class="prediction-tag">
+                    SIMULATED FUTURE
+                </span>
+
+            </div>
+
+
+
+            <!-- K = 1 -->
+
+            <div class="prediction-step">
+
+                <div class="prediction-marker">
+                    <span>K=1</span>
+                </div>
+
+                <div class="prediction-line"></div>
+
+                <div class="prediction-content">
+
+                    <div class="prediction-top">
+
+                        <div>
+
+                            <span class="prediction-label">
+                                NEXT STEP
+                            </span>
+
+                            <h2 id="predictionK1">
+                                Discovery
+                            </h2>
+
+                        </div>
+
+
+                        <div class="prediction-confidence">
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="confidenceK1">
+                                86%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        Attacker may begin discovering internal
+                        hosts, services, and network resources.
+                    </p>
+
+
+                    <div class="confidence-track">
+
+                        <div
+                            class="confidence-fill"
+                            id="confidenceBarK1"
+                            style="width: 86%;">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- K = 2 -->
+
+            <div class="prediction-step">
+
+                <div class="prediction-marker">
+                    <span>K=2</span>
+                </div>
+
+                <div class="prediction-line"></div>
+
+                <div class="prediction-content">
+
+                    <div class="prediction-top">
+
+                        <div>
+
+                            <span class="prediction-label">
+                                FOLLOWING STEP
+                            </span>
+
+                            <h2 id="predictionK2">
+                                Lateral Movement
+                            </h2>
+
+                        </div>
+
+
+                        <div class="prediction-confidence">
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="confidenceK2">
+                                72%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <p>
+                        Compromised access may spread toward
+                        additional internal systems.
+                    </p>
+
+
+                    <div class="confidence-track">
+
+                        <div
+                            class="confidence-fill"
+                            id="confidenceBarK2"
+                            style="width: 72%;">
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- K = 3 -->
+
+<div class="prediction-step">
+
+    <div class="prediction-marker">
+        <span>K=3</span>
+    </div>
+
+    <!-- IMPORTANT: prediction line -->
+    <div class="prediction-line"></div>
+
+    <div class="prediction-content">
+
+        <div class="prediction-top">
+
+            <div>
+
+                <span class="prediction-label">
+                    LONGER-HORIZON
+                </span>
+
+                <h2 id="predictionK3">
+                    Exfiltration
+                </h2>
+
+            </div>
+
+
+            <div class="prediction-confidence">
+
+                <span>
+                    Confidence
+                </span>
+
+                <strong id="confidenceK3">
+                    61%
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <p>
+            Sensitive information may become the
+            target if the trajectory continues.
+        </p>
+
+
+        <div class="confidence-track">
+
+            <div
+                class="confidence-fill"
+                id="confidenceBarK3"
+                style="width: 61%;">
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+        <!-- =========================
+             WORLD MODEL INSIGHT
+        ========================== -->
+
+        <section class="dashboard-card world-model-card">
+
+            <div class="card-header">
+
+                <div>
+
+                    <span class="card-label">
+                        MODEL INTERPRETATION
+                    </span>
+
+                    <h2>
+                        World Model Insight
+                    </h2>
+
+                </div>
+
+                <span class="live-badge">
+                    LATENT ROLLOUT
+                </span>
+
+            </div>
+
+
+            <div class="model-insight">
+
+                <div class="model-icon">
+                    ◈
+                </div>
+
+
+                <div>
+
+                    <h3 id="worldModelTitle">
+                        Attack trajectory is converging
+                    </h3>
+
+                    <p id="worldModelInsight">
+
+                        The current network state shows a
+                        possible progression from initial access
+                        toward internal discovery and lateral
+                        movement.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+</div>
+
+
+
+<script src="js/app.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Trajectory | PrognoSpect</title>
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@500;600;700&display=swap"
+        rel="stylesheet"
+    >
+</head>
+
+<body class="dashboard-page">
+
+    <!-- ================= SIDEBAR ================= -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-logo">
+            <div class="logo-mark">P</div>
+
+            <div>
+                <h2>PROGNOSPECT</h2>
+                <span>PREDICTIVE CYBER DEFENCE</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <a href="dashboard.html">
+                <span>▣</span>
+                Dashboard
+            </a>
+
+            <a href="trajectory.html" class="active">
+                <span>⌁</span>
+                Trajectory
+            </a>
+
+            <a href="prediction.html">
+                <span>◈</span>
+                Future Prediction
+            </a>
+
+            <a href="attack-map.html">
+                <span>◇</span>
+                Attack Map
+            </a>
+
+            <a href="explain-ai.html">
+                <span>✦</span>
+                Explainable AI
+            </a>
+
+            <a href="hosts.html">
+                <span>▤</span>
+                Host Intelligence
+            </a>
+
+        </nav>
+
+        <div class="sidebar-bottom">
+
+            <div class="simulation-status">
+                <span class="status-dot"></span>
+
+                <div>
+                    <strong>SIMULATED MODE</strong>
+                    <small>Frontend Demonstration</small>
+                </div>
+            </div>
+
+            <a href="index.html" class="logout">
+                <span>↪</span>
+                Exit Analysis
+            </a>
+
+        </div>
+
+    </aside>
+
+
+    <!-- ================= MAIN ================= -->
+
+    <main class="dashboard-main">
+
+        <!-- HEADER -->
+
+        <header class="dashboard-header">
+
+            <div>
+                <div class="page-label">
+                    PREDICTIVE ANALYSIS
+                </div>
+
+                <h1>Attack Trajectory</h1>
+
+                <p>
+                    K-step prediction of the evolving network state
+                </p>
+            </div>
+
+            <div class="header-status">
+                <span class="status-dot"></span>
+                WORLD MODEL ACTIVE
+            </div>
+
+        </header>
+
+
+        <!-- ================= CURRENT STATE ================= -->
+
+        <section class="prediction-current-card">
+
+            <div class="trajectory-current-info">
+
+                <div class="section-heading">
+                    CURRENT NETWORK STATE
+                </div>
+
+                <h2 id="trajectoryCurrent">
+                    Initial Access
+                </h2>
+
+                <p>
+                    Current observed state from the network
+                    behaviour sequence.
+                </p>
+
+            </div>
+
+
+            <div class="trajectory-current-stat">
+
+                <span>RISK SCORE</span>
+
+                <strong id="trajectoryRisk">
+                    45
+                </strong>
+
+            </div>
+
+
+            <div class="trajectory-current-stat">
+
+                <span>MODEL CONFIDENCE</span>
+
+                <strong id="trajectoryConfidence">
+                    86%
+                </strong>
+
+            </div>
+
+
+            <div class="trajectory-current-stat next-stat">
+
+                <span>NEXT PREDICTED STATE</span>
+
+                <strong id="trajectoryNext">
+                    Discovery
+                </strong>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= TRAJECTORY ================= -->
+
+        <section class="dashboard-card trajectory-card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2>Future Attack Trajectory</h2>
+
+                    <p>
+                        World Model rollout — current state to
+                        predicted future states
+                    </p>
+                </div>
+
+                <span class="card-badge">
+                    K = 3
+                </span>
+
+            </div>
+
+
+            <!-- S TYPE FLOW -->
+
+            <div class="trajectory-s-flow">
+
+
+                <!-- ===== T0 ===== -->
+
+                <div class="s-row left">
+
+                    <div class="trajectory-box current">
+
+                        <div class="trajectory-box-top">
+
+                            <span class="trajectory-index">
+                                T0
+                            </span>
+
+                            <span class="trajectory-type current-type">
+                                CURRENT
+                            </span>
+
+                        </div>
+
+                        <h3 id="stageCurrent">
+                            Initial Access
+                        </h3>
+
+                        <p>
+                            Observed network state
+                        </p>
+
+                        <div class="trajectory-box-bottom">
+
+                            <span>
+                                Risk
+                            </span>
+
+                            <strong id="riskCurrent">
+                                45
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CONNECTOR 1 -->
+
+                <div class="s-connector vertical">
+
+                    <span>↓</span>
+
+                </div>
+
+
+                <!-- ===== K+1 ===== -->
+
+                <div class="s-row right">
+
+                    <div class="trajectory-box predicted">
+
+                        <div class="trajectory-box-top">
+
+                            <span class="trajectory-index">
+                                K+1
+                            </span>
+
+                            <span class="trajectory-type predicted-type">
+                                PREDICTED
+                            </span>
+
+                        </div>
+
+                        <h3 id="stageK1">
+                            Discovery
+                        </h3>
+
+                        <p>
+                            Most likely next attack stage
+                        </p>
+
+                        <div class="trajectory-box-bottom">
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="confidenceK1">
+                                86%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CONNECTOR 2 -->
+
+                <div class="s-connector horizontal-right">
+
+                    <span>↙</span>
+
+                </div>
+
+
+                <!-- ===== K+2 ===== -->
+
+                <div class="s-row left">
+
+                    <div class="trajectory-box predicted">
+
+                        <div class="trajectory-box-top">
+
+                            <span class="trajectory-index">
+                                K+2
+                            </span>
+
+                            <span class="trajectory-type predicted-type">
+                                PREDICTED
+                            </span>
+
+                        </div>
+
+                        <h3 id="stageK2">
+                            Lateral Movement
+                        </h3>
+
+                        <p>
+                            Predicted internal movement
+                        </p>
+
+                        <div class="trajectory-box-bottom">
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="confidenceK2">
+                                72%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- CONNECTOR 3 -->
+
+                <div class="s-connector vertical">
+
+                    <span>↓</span>
+
+                </div>
+
+
+                <!-- ===== K+3 ===== -->
+
+                <div class="s-row right">
+
+                    <div class="trajectory-box predicted">
+
+                        <div class="trajectory-box-top">
+
+                            <span class="trajectory-index">
+                                K+3
+                            </span>
+
+                            <span class="trajectory-type predicted-type">
+                                PREDICTED
+                            </span>
+
+                        </div>
+
+                        <h3 id="stageK3">
+                            Exfiltration
+                        </h3>
+
+                        <p>
+                            Potential future compromise state
+                        </p>
+
+                        <div class="trajectory-box-bottom">
+
+                            <span>
+                                Confidence
+                            </span>
+
+                            <strong id="confidenceK3">
+                                61%
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= MODEL INSIGHT ================= -->
+
+        <section class="dashboard-card world-model-card">
+
+            <div class="card-header">
+
+                <div>
+                    <h2>World Model Insight</h2>
+
+                    <p>
+                        Interpreted prediction from the
+                        future latent trajectory
+                    </p>
+                </div>
+
+                <span class="card-badge">
+                    AI
+                </span>
+
+            </div>
+
+
+            <div class="model-insight">
+
+                <div class="model-icon">
+                    ◈
+                </div>
+
+                <div>
+
+                    <h3 id="trajectoryInsightTitle">
+                        Early attack progression detected
+                    </h3>
+
+                    <p id="trajectoryInsight">
+                        The current network state shows early
+                        suspicious activity. The model predicts
+                        Discovery as the most likely next stage.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- ================= FOOTER ================= -->
+
+        <footer class="dashboard-footer">
+
+            <span>
+                PROGNOSPECT
+            </span>
+
+            <span>
+                Predictive Cyber Defence • Frontend Simulation
+            </span>
+
+        </footer>
+
+    </main>
+
+
+    <!-- ================= JAVASCRIPT ================= -->
+
+    <script src="js/app.js"></script>
+
+</body>
+</html>
