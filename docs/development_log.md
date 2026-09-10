@@ -340,6 +340,7 @@ The frontend currently contains the following pages:
 * `attack-map.html`
 * `prediction.html`
 * `explain-ai.html`
+* `trajectory.html`
 
 Some components, such as the Explainable AI interface, are outside the scope of the current version and have therefore been marked as **WIP (Work In Progress)**.
 
