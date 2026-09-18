@@ -121,18 +121,22 @@ def split_expr(exp: str) -> list[Any]:
 
     for line in exp.strip().splitlines():
 
+        line = line.replace("(", " ( ").replace(")", " ) ")  # NEW
+
         t_f = [""]
 
         for token in line.split():
 
             token_u = token.upper()
 
-            if token_u in all_ops:
+            if token in ("(", ")"):  # NEW
+                t_f.append(token)
+                t_f.append("")
+            elif token_u in all_ops:
                 t_f.append(token_u)
                 t_f.append("")
             else:
                 t_f[-1] += token + " "
-
 
         t_f = [to_num(x.strip()) for x in t_f if x != ""]
 

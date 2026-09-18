@@ -1,0 +1,100 @@
+cicflowmeter:
+  enabled: true
+  executable: "D:\\programming\\Python\\PrognoSpect\\third_party\\CICFlowMeter\\bin\\cfm.bat"
+  work_dir: "D:\\temp\\prognospect_cicfm"
+  preserve_intermediate_csv: false
+  flow_timeout_seconds: 120
+  flow_activity_timeout_seconds: 5
+
+providers:
+  - cicflowmeter
+
+output:
+  path: "D:\\programming\\Python\\PrognoSpect\\out\\sample\\flows.csv"
+  missing_value: ""
+
+schema:
+  - {target: "Flow ID", source: "Flow ID"}
+  - {target: "Source IP", source: "Src IP"}
+  - {target: "Source Port", source: "Src Port"}
+  - {target: "Destination IP", source: "Dst IP"}
+  - {target: "Destination Port", source: "Dst Port"}
+  - {target: "Protocol", source: "Protocol"}
+  - {target: "Timestamp", source: "Timestamp"}
+  - {target: "Flow Duration", source: "Flow Duration"}
+  - {target: "Total Fwd Packets", source: "Total Fwd Packet"}
+  - {target: "Total Bwd Packets", source: "Total Bwd packets"}
+  - {target: "Total Length of Fwd Packets", source: "Total Length of Fwd Packet"}
+  - {target: "Total Length of Bwd Packets", source: "Total Length of Bwd Packet"}
+  - {target: "Fwd Packet Length Max", source: "Fwd Packet Length Max"}
+  - {target: "Fwd Packet Length Min", source: "Fwd Packet Length Min"}
+  - {target: "Fwd Packet Length Mean", source: "Fwd Packet Length Mean"}
+  - {target: "Fwd Packet Length Std", source: "Fwd Packet Length Std"}
+  - {target: "Bwd Packet Length Max", source: "Bwd Packet Length Max"}
+  - {target: "Bwd Packet Length Min", source: "Bwd Packet Length Min"}
+  - {target: "Bwd Packet Length Mean", source: "Bwd Packet Length Mean"}
+  - {target: "Bwd Packet Length Std", source: "Bwd Packet Length Std"}
+  - {target: "Flow Bytes/s", source: "Flow Bytes/s"}
+  - {target: "Flow Packets/s", source: "Flow Packets/s"}
+  - {target: "Flow IAT Mean", source: "Flow IAT Mean"}
+  - {target: "Flow IAT Std", source: "Flow IAT Std"}
+  - {target: "Flow IAT Max", source: "Flow IAT Max"}
+  - {target: "Flow IAT Min", source: "Flow IAT Min"}
+  - {target: "Fwd IAT Total", source: "Fwd IAT Total"}
+  - {target: "Fwd IAT Mean", source: "Fwd IAT Mean"}
+  - {target: "Fwd IAT Std", source: "Fwd IAT Std"}
+  - {target: "Fwd IAT Max", source: "Fwd IAT Max"}
+  - {target: "Fwd IAT Min", source: "Fwd IAT Min"}
+  - {target: "Bwd IAT Total", source: "Bwd IAT Total"}
+  - {target: "Bwd IAT Mean", source: "Bwd IAT Mean"}
+  - {target: "Bwd IAT Std", source: "Bwd IAT Std"}
+  - {target: "Bwd IAT Max", source: "Bwd IAT Max"}
+  - {target: "Bwd IAT Min", source: "Bwd IAT Min"}
+  - {target: "Fwd PSH Flags", source: "Fwd PSH Flags"}
+  - {target: "Bwd PSH Flags", source: "Bwd PSH Flags"}
+  - {target: "Fwd URG Flags", source: "Fwd URG Flags"}
+  - {target: "Bwd URG Flags", source: "Bwd URG Flags"}
+  - {target: "Fwd Header Length", source: "Fwd Header Length"}
+  - {target: "Bwd Header Length", source: "Bwd Header Length"}
+  - {target: "Fwd Packets/s", source: "Fwd Packets/s"}
+  - {target: "Bwd Packets/s", source: "Bwd Packets/s"}
+  - {target: "Packet Length Min", source: "Packet Length Min"}
+  - {target: "Packet Length Max", source: "Packet Length Max"}
+  - {target: "Packet Length Mean", source: "Packet Length Mean"}
+  - {target: "Packet Length Std", source: "Packet Length Std"}
+  - {target: "Packet Length Variance", source: "Packet Length Variance"}
+  - {target: "FIN Flag Count", source: "FIN Flag Count"}
+  - {target: "SYN Flag Count", source: "SYN Flag Count"}
+  - {target: "RST Flag Count", source: "RST Flag Count"}
+  - {target: "PSH Flag Count", source: "PSH Flag Count"}
+  - {target: "ACK Flag Count", source: "ACK Flag Count"}
+  - {target: "URG Flag Count", source: "URG Flag Count"}
+  - {target: "CWE Flag Count", source: "CWR Flag Count"}
+  - {target: "ECE Flag Count", source: "ECE Flag Count"}
+  - {target: "Down/Up Ratio", source: "Down/Up Ratio"}
+  - {target: "Average Packet Size", source: "Average Packet Size"}
+  - {target: "Avg Fwd Segment Size", source: "Fwd Segment Size Avg"}
+  - {target: "Avg Bwd Segment Size", source: "Bwd Segment Size Avg"}
+  - {target: "Fwd Header Length.1", duplicate_of: "Fwd Header Length"}
+  - {target: "Fwd Avg Bytes/Bulk", source: "Fwd Bytes/Bulk Avg"}
+  - {target: "Fwd Avg Packets/Bulk", source: "Fwd Packet/Bulk Avg"}
+  - {target: "Fwd Avg Bulk Rate", source: "Fwd Bulk Rate Avg"}
+  - {target: "Bwd Avg Bytes/Bulk", source: "Bwd Bytes/Bulk Avg"}
+  - {target: "Bwd Avg Packets/Bulk", source: "Bwd Packet/Bulk Avg"}
+  - {target: "Bwd Avg Bulk Rate", source: "Bwd Bulk Rate Avg"}
+  - {target: "Subflow Fwd Packets", source: "Subflow Fwd Packets"}
+  - {target: "Subflow Fwd Bytes", source: "Subflow Fwd Bytes"}
+  - {target: "Subflow Bwd Packets", source: "Subflow Bwd Packets"}
+  - {target: "Subflow Bwd Bytes", source: "Subflow Bwd Bytes"}
+  - {target: "Init_Win_bytes_forward", source: "FWD Init Win Bytes"}
+  - {target: "Init_Win_bytes_backward", source: "Bwd Init Win Bytes"}
+  - {target: "act_data_pkt_fwd", source: "Fwd Act Data Pkts"}
+  - {target: "min_seg_size_forward", source: "Fwd Seg Size Min"}
+  - {target: "Active Mean", source: "Active Mean"}
+  - {target: "Active Std", source: "Active Std"}
+  - {target: "Active Max", source: "Active Max"}
+  - {target: "Active Min", source: "Active Min"}
+  - {target: "Idle Mean", source: "Idle Mean"}
+  - {target: "Idle Std", source: "Idle Std"}
+  - {target: "Idle Max", source: "Idle Max"}
+  - {target: "Idle Min", source: "Idle Min"}

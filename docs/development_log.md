@@ -347,3 +347,19 @@ Some components, such as the Explainable AI interface, are outside the scope of 
 The current frontend simulates the appearance and behavior of a working system. The displayed values are not produced by the actual backend or ML models; they are generated or changed randomly within predefined value ranges to demonstrate how the interface would behave with changing system data.
 
 The frontend will be connected to the actual backend and model outputs in subsequent development.
+
+## Dataset Re-evaluation and Transition to PCAP Processing
+
+After completing the dataset cleaning process, we were preparing to create the network-state representations.
+
+During this process, we discovered that **9 of the 10 CSV files did not contain source and destination IP addresses and ports**, which are mandatory for constructing the network relationship graphs required by the selected architecture.
+
+Without these fields, the available dataset did not provide sufficient information to construct the required graph-based states and train the World Model and classifier as intended.
+
+We therefore decided to use the **complete CSE-CIC-IDS2018 dataset**, which is over **400 GB**, instead of the smaller flow-level variant.
+
+To avoid the storage and memory constraints associated with processing the entire dataset at once, the dataset will be processed **PCAP file by PCAP file in batches**, rather than loading or converting the entire dataset into a single processed dataset.
+
+Working directly with the raw PCAP files also allows **packet-level information** to be incorporated into PrognoSpect, which was not possible with the previously selected flow-level dataset variant.
+
+This changes the data-processing pipeline from primarily **flow-level processing** to a pipeline capable of incorporating both **packet-level and flow-level information**.

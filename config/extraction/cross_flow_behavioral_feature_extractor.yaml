@@ -1,0 +1,93 @@
+input_field_mapping:
+  timestamp: timestamp
+  src_ip: src_ip
+  dst_ip: dst_ip
+  dst_port: dst_port
+  protocol: protocol
+
+temporal:
+  window_seconds: 300
+
+constants:
+  tcp_protocol: TCP
+  udp_protocol: UDP
+
+statistics:
+  minimum_duration_seconds: 0.001
+  entropy_log_base: 2
+  sequentiality_min_run_edges: 2
+
+historical_streams:
+
+  - name: dst_port_activity
+    group_by: [src_ip]
+    eligibility:
+      expression: "(protocol == tcp_protocol or protocol == udp_protocol) and dst_port == dst_port and src_ip == src_ip"
+      requires: [protocol, tcp_protocol, udp_protocol, dst_port, src_ip]
+    value:
+      expression: "dst_port"
+      requires: [dst_port]
+
+  - name: src_dst_pair_activity
+    group_by: [src_ip, dst_ip]
+    eligibility:
+      expression: "src_ip == src_ip and dst_ip == dst_ip"
+      requires: [src_ip, dst_ip]
+
+features:
+
+  - name: dst_port_unique_cnt
+    stream: dst_port_activity
+    statistic:
+      type: unique_count
+    missing_value: 0.0
+    formula:
+      expression: "count"
+      requires: [count]
+
+  - name: dst_port_scan_rate
+    stream: dst_port_activity
+    statistic:
+      type: span_rate
+      count_mode: unique
+    missing_value: 0.0
+    formula:
+      expression: "N / duration"
+      requires: [N, duration]
+
+  - name: dst_port_sequentiality
+    stream: dst_port_activity
+    statistic:
+      type: sequentiality
+    missing_value: 0.0
+    formula:
+      expression: "run_length / total_transitions"
+      requires: [run_length, total_transitions]
+
+  - name: dst_port_entropy
+    stream: dst_port_activity
+    statistic:
+      type: entropy
+    missing_value: 0.0
+    formula:
+      expression: "-1 * entropy_sum"
+      requires: [entropy_sum]
+
+  - name: src_dst_pair_flow_rate
+    stream: src_dst_pair_activity
+    statistic:
+      type: span_rate
+      count_mode: raw
+    missing_value: 0.0
+    formula:
+      expression: "N / duration"
+      requires: [N, duration]
+
+output_feature_columns:
+  - dst_port_unique_cnt
+  - dst_port_scan_rate
+  - dst_port_sequentiality
+  - dst_port_entropy
+  - src_dst_pair_flow_rate
+
+flow_identification_columns: [timestamp, src_ip, dst_ip, dst_port, protocol]

@@ -1,0 +1,52 @@
+constants:
+  sentinel_value: -1
+  tcp_protocol: TCP
+
+statistics:
+  percentile_method: linear
+
+ttl:
+  source_field: ttl
+  statistics: [mean, std, min, max]
+
+tcp_window:
+  source_field: tcp_window
+  protocol_restricted: true
+  statistics: [mean, std, min, max]
+
+payload:
+  source_field: payload_length
+  statistics: [mean, std, min, max, median, p25, p75]
+
+fragmentation:
+  is_fragmented_field: is_fragmented
+  fragment_offset_field: fragment_offset
+
+output_feature_columns:
+  - ttl_fwd_mean
+  - ttl_fwd_std
+  - ttl_fwd_min
+  - ttl_fwd_max
+  - ttl_bwd_mean
+  - ttl_bwd_std
+  - ttl_bwd_min
+  - ttl_bwd_max
+  - tcp_window_fwd_mean
+  - tcp_window_fwd_std
+  - tcp_window_fwd_min
+  - tcp_window_fwd_max
+  - tcp_window_bwd_mean
+  - tcp_window_bwd_std
+  - tcp_window_bwd_min
+  - tcp_window_bwd_max
+  - fragmentation_count
+  - fragmentation_offset_mean
+  - fragmentation_offset_max
+  - payload_mean
+  - payload_std
+  - payload_min
+  - payload_max
+  - payload_median
+  - payload_p25
+  - payload_p75
+  - retransmission_count

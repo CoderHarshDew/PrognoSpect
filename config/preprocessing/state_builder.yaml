@@ -1,5 +1,0 @@
-version: 1.0
-
-window_seconds: 10
-hidden_dim: 64
-num_gnn_layer: 2

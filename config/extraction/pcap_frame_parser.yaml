@@ -1,0 +1,57 @@
+ethernet:
+  # Assumes plain untagged Ethernet II framing (no 802.1Q VLAN tag), and
+  # assumes PCAP link_type == 1 (DLT_EN10MB) for every file. Verified only
+  # against the single sample file checked so far. TODO: once the full
+  # CICIDS2018 archive (50+ GB) is downloaded, scan all files for
+  # link_type != 1 and for VLAN-tagged frames (bytes 12-13 == 0x8100) before
+  # trusting these offsets dataset-wide.
+  header_length: 14
+  dst_mac_offset: 0
+  src_mac_offset: 6
+  ethertype_offset: 12
+  ipv4_ethertype: 0x0800
+  ipv6_ethertype: 0x86DD
+
+ipv4:
+  version_ihl_offset: 0
+  ihl_low_nibble_mask: 0x0F
+  ihl_word_size: 4
+  protocol_offset: 9
+  src_ip_offset: 12
+  dst_ip_offset: 16
+  min_header_length: 20
+  protocol_numbers:
+    tcp: 6
+    udp: 17
+
+ipv6:
+  header_length: 40
+  next_header_offset: 6
+  src_ip_offset: 8
+  dst_ip_offset: 24
+
+tcp:
+  src_port_offset: 0
+  src_port_length: 2
+  dst_port_offset: 2
+  dst_port_length: 2
+  min_header_length: 20
+
+udp:
+  src_port_offset: 0
+  src_port_length: 2
+  dst_port_offset: 2
+  dst_port_length: 2
+  min_header_length: 8
+
+protocol_labels:
+  tcp: TCP
+  udp: UDP
+
+output_field_names:
+  timestamp: timestamp
+  src_ip: src_ip
+  dst_ip: dst_ip
+  src_port: src_port
+  dst_port: dst_port
+  protocol: protocol

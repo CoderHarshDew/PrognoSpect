@@ -1,0 +1,20 @@
+cicflowmeter_csv:
+  column_mapping:
+    flow_id: Flow ID
+    src_ip: Src IP
+    src_port: Src Port
+    dst_ip: Dst IP
+    dst_port: Dst Port
+    protocol: Protocol
+    timestamp: Timestamp
+    flow_duration: Flow Duration
+    retransmission_count: Total TCP Retrans. Count
+  timestamp_format: "%Y-%m-%d %H:%M:%S.%f"
+
+protocol_number_to_label:
+  6: TCP
+  17: UDP
+
+truncation_handling:
+  debug_logging: false
+  completeness_field_name: packet_data_complete
