@@ -146,7 +146,7 @@ def _compute_statistic(values: List[float], statistic: str) -> float:
     if statistic == "mean":
         return statistics.fmean(values)
     if statistic == "std":
-        return statistics.pstdev(values)
+        return statistics.stdev(values) if len(values) > 1 else 0.0
     if statistic == "min":
         return min(values)
     if statistic == "max":

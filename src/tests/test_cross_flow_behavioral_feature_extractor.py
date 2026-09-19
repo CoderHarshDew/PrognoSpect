@@ -1,6 +1,7 @@
 from __future__ import annotations
 from pathlib import Path
 from src.database.pcap_reader import PCAPReader
+from src.extraction.pcap_frame_parser import PCAPFrameParser
 from src.extraction.cross_flow_behavioral_feature_extractor import CrossFlowBehavioralFeatureExtractor, DEFAULT_CONFIG_PATH
 
 
@@ -11,11 +12,13 @@ def test_cross_flow_behavioral_feature_extractor(pcap_path: Path, tshark_path: P
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     extractor = CrossFlowBehavioralFeatureExtractor(config_path=config_path)
+    frame_parser = PCAPFrameParser()
 
     records = []
     record_count = 0
     with PCAPReader(pcap_path, tshark_path=tshark_path) as reader:
-        for record in extractor.extract(reader):
+        parsed_frames = (frame_parser.parse(packet) for packet in reader)
+        for record in extractor.extract(parsed_frames):
             record_count += 1
             if len(records) < sample_size:
                 records.append(record)

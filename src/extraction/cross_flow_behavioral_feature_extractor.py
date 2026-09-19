@@ -3,12 +3,10 @@ from collections import Counter, defaultdict, deque
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Deque, Dict, Iterable, Iterator, List, Optional, Tuple
-import logging
 import math
 from src.core.config import config_loader
 from src.core.evaluator import bind_var_and_evaluate, compile_expr
-
-logger = logging.getLogger(__name__)
+from src.core.logger import logger
 
 GroupKey = Tuple[Any, ...]
 DEFAULT_CONFIG_PATH = "config/extraction/cross_flow_behavioral_feature_extractor.yaml"
@@ -154,6 +152,9 @@ class CrossFlowBehavioralFeatureExtractor:
 
     def _build_observation(self, packet: Any) -> Dict[str, Any]:
         obs = {logical: _get_field(packet, source) for logical, source in self.field_mapping.items()}
+        for logical, source in self.field_mapping.items():
+            if obs[logical] is None:
+                logger.warning("field_mapping produced None for logical=%r source=%r packet_type=%r", logical, source, type(packet).__name__)
         ts = obs.get("timestamp")
         if isinstance(ts, datetime):
             obs["timestamp"] = ts.timestamp()

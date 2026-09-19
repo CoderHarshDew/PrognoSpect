@@ -3,7 +3,7 @@ from __future__ import annotations
 import csv
 import logging
 from pathlib import Path
-from typing import Dict, Iterator, List
+from typing import Dict, Iterator, List, Set, Tuple
 
 from src.extraction.providers import cicflowmeter
 
@@ -24,15 +24,23 @@ def run(pcap_path: Path, config: Dict) -> Path:
     target_columns = [entry["target"] for entry in schema]
     missing_value = config.get("output", {}).get("missing_value", "")
 
-    flows: Dict[str, Dict[str, str]] = {}
+    flows: Dict[Tuple[str, str], Dict[str, str]] = {}
     for provider_name in config["providers"]:
         logger.info("Running provider: %s", provider_name)
         count = 0
+        seen: Set[Tuple[str, str]] = set()
         for row in _run_provider(provider_name, pcap_path, config, schema):
             flow_id = row.get("Flow ID")
             if not flow_id:
                 raise ValueError(f"Provider '{provider_name}' yielded a row with no Flow ID.")
-            flows.setdefault(flow_id, {}).update(row)
+            timestamp = row.get("Timestamp")
+            if not timestamp:
+                raise ValueError(f"Provider '{provider_name}' yielded a row with no Timestamp.")
+            key = (flow_id, timestamp)
+            if key in seen:
+                raise ValueError(f"Provider '{provider_name}' yielded a duplicate (Flow ID, Timestamp) key: {key}.")
+            seen.add(key)
+            flows.setdefault(key, {}).update(row)
             count += 1
         logger.info("Provider '%s' produced %d flow(s).", provider_name, count)
 

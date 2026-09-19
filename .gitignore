@@ -5,7 +5,7 @@
 *.pyc
 /dataset/
 /out/
-logs/
 /test.py
 reports/
 third_party/
+logs/
