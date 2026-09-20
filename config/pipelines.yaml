@@ -1,0 +1,43 @@
+version: 1.0
+
+day_pattern: !!str '\d{2}-\d{2}-\d{4}'
+day_format: !!str '%d-%m-%Y'
+
+flow_id_column: !!str 'Flow ID'
+timestamp_column: !!str 'Timestamp'
+
+cross_flow_columns:
+  - !!str 'dst_port_unique_cnt'
+  - !!str 'dst_port_scan_rate'
+  - !!str 'dst_port_sequentiality'
+  - !!str 'dst_port_entropy'
+  - !!str 'src_dst_pair_flow_rate'
+
+packet_level_columns:
+  ttl_fwd_mean: !!str 'TTL Fwd Mean'
+  ttl_fwd_std: !!str 'TTL Fwd Std'
+  ttl_fwd_min: !!str 'TTL Fwd Min'
+  ttl_fwd_max: !!str 'TTL Fwd Max'
+  ttl_bwd_mean: !!str 'TTL Bwd Mean'
+  ttl_bwd_std: !!str 'TTL Bwd Std'
+  ttl_bwd_min: !!str 'TTL Bwd Min'
+  ttl_bwd_max: !!str 'TTL Bwd Max'
+  tcp_window_fwd_mean: !!str 'TCP Window Fwd Mean'
+  tcp_window_fwd_std: !!str 'TCP Window Fwd Std'
+  tcp_window_fwd_min: !!str 'TCP Window Fwd Min'
+  tcp_window_fwd_max: !!str 'TCP Window Fwd Max'
+  tcp_window_bwd_mean: !!str 'TCP Window Bwd Mean'
+  tcp_window_bwd_std: !!str 'TCP Window Bwd Std'
+  tcp_window_bwd_min: !!str 'TCP Window Bwd Min'
+  tcp_window_bwd_max: !!str 'TCP Window Bwd Max'
+  fragmentation_count: !!str 'Fragmentation Count'
+  fragmentation_offset_mean: !!str 'Fragmentation Offset Mean'
+  fragmentation_offset_max: !!str 'Fragmentation Offset Max'
+  payload_mean: !!str 'Payload Mean'
+  payload_std: !!str 'Payload Std'
+  payload_min: !!str 'Payload Min'
+  payload_max: !!str 'Payload Max'
+  payload_median: !!str 'Payload Median'
+  payload_p25: !!str 'Payload P25'
+  payload_p75: !!str 'Payload P75'
+  retransmission_count: !!str 'Retransmission Count'
