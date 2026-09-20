@@ -5,6 +5,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
+_MAX_CAPTURE_LENGTH = 262144
+_MIN_TS_SECONDS = 0
+_MAX_TS_SECONDS = 4_102_444_800
+_MAX_MICROSECOND_FRACTION = 1_000_000
+_MAX_NANOSECOND_FRACTION = 1_000_000_000
+
 
 @dataclass(slots=True)
 class Packet:
@@ -29,6 +35,9 @@ class PCAPReader:
         self.version_minor = None
         self.snaplen = None
         self.link_type = None
+
+        self.dropped_count = 0
+        self.drop_reasons = []
 
     def __enter__(self):
         if not self.pcap_path.is_file():
@@ -75,6 +84,12 @@ class PCAPReader:
                     raise RuntimeError(f"TShark failed after {self.packet_count} packets: {error}")
 
         finally:
+            if self.dropped_count:
+                print(
+                    f"[PCAPReader] {self.pcap_path.name}: "
+                    f"kept {self.packet_count} packets, dropped {self.dropped_count} "
+                    f"due to failed validation."
+                )
             self._cleanup()
 
     def __iter__(self):
@@ -93,16 +108,44 @@ class PCAPReader:
 
             ts_sec, ts_fraction, captured_length, original_length = struct.unpack(f"{self.byte_order}IIII", packet_header)
 
+            if captured_length > _MAX_CAPTURE_LENGTH or (self.snaplen and captured_length > self.snaplen * 2):
+                self._log_drop(
+                    f"packet {self.packet_count}: captured_length={captured_length} "
+                    f"exceeds sane bound (snaplen={self.snaplen}); stopping read for this file "
+                    f"to avoid misaligned data."
+                )
+                self._reached_eof = True
+                break
+
             packet_data = self._stream.read(captured_length)
 
             if len(packet_data) != captured_length:
                 raise ValueError(f"Incomplete packet data after {self.packet_count} packets: expected {captured_length} bytes, got {len(packet_data)} bytes.")
+
+            fraction_limit = (
+                _MAX_MICROSECOND_FRACTION
+                if self._timestamp_resolution == "microsecond"
+                else _MAX_NANOSECOND_FRACTION
+            )
+
+            if not (_MIN_TS_SECONDS <= ts_sec <= _MAX_TS_SECONDS) or not (0 <= ts_fraction < fraction_limit):
+                self._log_drop(
+                    f"packet {self.packet_count}: invalid timestamp "
+                    f"(ts_sec={ts_sec}, ts_fraction={ts_fraction}); skipping packet."
+                )
+                self.packet_count += 1
+                continue
 
             timestamp = self._build_timestamp(ts_sec, ts_fraction)
 
             self.packet_count += 1
 
             yield Packet(timestamp=timestamp, captured_length=captured_length, original_length=original_length, data=packet_data)
+
+    def _log_drop(self, message):
+        self.dropped_count += 1
+        self.drop_reasons.append(message)
+        print(f"[PCAPReader] {self.pcap_path.name}: {message}")
 
     def _read_global_header(self):
         global_header = self._stream.read(24)
