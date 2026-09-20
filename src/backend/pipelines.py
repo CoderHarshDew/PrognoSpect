@@ -713,6 +713,8 @@ def _extract_batch(day: str, batch_index: int, groups: list, extracted_path: Pat
 
         group_flow_path.unlink()
 
+        print(f"PCAP#{group_index + 1} of Batch {batch_index + 1} of Archive {day} finished processing.", flush=True)
+
     merge_pipeline(flow_path, packet_path, cross_flow_path, merged_path, append=batch_index > 0)
 
     batch_sizes.append(merged_path.stat().st_size)
