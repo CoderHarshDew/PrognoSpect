@@ -20,4 +20,4 @@ config_paths:
   flow_extraction: !!str "config/extraction/flow_extraction.yaml"
   flow_packet_joiner: !!str "config/extraction/flow_packet_joiner.yaml"
   pipelines: !!str "config/pipelines.yaml"
-  label_and_order: !!str "config/label_and_order.yaml"
+  label_and_order: !!str "config/extraction/label_and_order.yaml"
