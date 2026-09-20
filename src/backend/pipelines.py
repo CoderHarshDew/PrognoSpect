@@ -18,6 +18,7 @@ from src.database.chunked_writer import write_csv_in_chunks
 from src.extraction.cross_flow_behavioral_feature_extractor import CrossFlowBehavioralFeatureExtractor
 from src.extraction.packet_feature_extractor import FlowPacketJoiner, extract_all
 from src.extraction.write_flow_features_csv import run as run_flow_extraction
+from src.extraction.label_and_order import label_and_order
 
 
 VALIDATION_SCHEMA_CFG_PATH = Path('config/preprocessing/validation_schema.yaml')
@@ -31,6 +32,8 @@ GLOBAL_CFG_PATH = Path('config/global_configuration.yaml')
 PCAP_DATASET_PATH = Path('dataset/pcap')
 EXTRACTED_PATH = Path('dataset/extracted')
 MERGED_OUTPUT_PATH = Path('dataset/extracted/merged')
+LABELED_OUTPUT_PATH = Path('dataset/extracted/labeled')
+LABELING_SCHEDULE_PATH = Path('config/labeling/schedule.yaml')
 FLOW_EXTRACTION_CFG_PATH = Path('config/extraction/flow_extraction.yaml')
 FLOW_PACKET_JOINER_CFG_PATH = Path('config/extraction/flow_packet_joiner.yaml')
 TSHARK_PATH = 'C:/Program Files/Wireshark/tshark.exe'
@@ -760,9 +763,21 @@ def _run_archive(day: str, limit: int | None, extracted_path: Path, merged_outpu
 
         logger.info("Archive %s batch %d/%d: PCAPs removed.", day, batch_index + 1, batch_count)
 
-    logger.info("Archive %s done.", day)
+    merged_path = merged_output_path / f'{day}.csv'
+    labeled_path = LABELED_OUTPUT_PATH / f'{day}.csv'
+    labeled_path.parent.mkdir(parents=True, exist_ok=True)
 
-    return merged_output_path / f'{day}.csv'
+    logger.info("Labeling and ordering merged CSV for archive %s.", day)
+
+    try:
+        label_and_order(merged_path, LABELING_SCHEDULE_PATH, labeled_path)
+    except Exception:
+        logger.exception("Labeling and ordering failed for archive %s.", day)
+        raise
+
+    logger.info("Archive %s done. Labeled output: %s", day, labeled_path)
+
+    return labeled_path
 
 
 def download_and_extract(day: str | None = None, limit: int | None = None, extracted_path: str | Path = EXTRACTED_PATH, merged_output_path: str | Path = MERGED_OUTPUT_PATH, skip_days: int = 0):

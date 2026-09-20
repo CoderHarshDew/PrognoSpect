@@ -1,11 +1,9 @@
 import csv
-import os
-import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
 
-from schedule import load_schedule
+from src.extraction.schedule import load_schedule
 
 TIMESTAMP_COL = "Timestamp"
 FLOW_ID_COL = "Flow ID"
@@ -13,7 +11,7 @@ SRC_IP_COL = "Source IP"
 DST_IP_COL = "Destination IP"
 PROTOCOL_COL = "Protocol"
 
-VALID_PROTOCOLS = {"6", "17"}  # TCP, UDP only — everything else is dropped
+VALID_PROTOCOLS = {"6", "17"}
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
 
 
@@ -23,42 +21,37 @@ def read_header(csv_path: Path):
 
 
 def sort_merged_csv(input_path: Path, header: list) -> Path:
-    """Sorts the CSV body (header stripped) by Timestamp then Flow ID using
-    GNU sort, so it scales to files far larger than available RAM. Returns
-    the path to the sorted body (no header)."""
-    ts_idx = header.index(TIMESTAMP_COL) + 1  # `sort -k` is 1-based
-    flow_idx = header.index(FLOW_ID_COL) + 1
+    ts_i = header.index(TIMESTAMP_COL)
+    flow_i = header.index(FLOW_ID_COL)
 
-    body_path = input_path.with_suffix(".body.tmp")
-    with open(input_path, "r") as src, open(body_path, "w") as dst:
-        next(src)  # skip header
-        dst.writelines(src)
+    entries = []
+
+    with open(input_path, "rb") as f:
+        f.readline()
+
+        offset = f.tell()
+        line = f.readline()
+        while line:
+            length = len(line)
+            row = next(csv.reader([line.decode("utf-8")]))
+            entries.append((row[ts_i], row[flow_i], offset, length))
+
+            offset += length
+            line = f.readline()
+
+    entries.sort(key=lambda entry: (entry[0], entry[1]))
 
     sorted_path = input_path.with_suffix(".sorted.tmp")
-    env = dict(os.environ)
-    env["LC_ALL"] = "C"  # byte-order sort: matches the sortable timestamp format
 
-    with open(sorted_path, "w") as out:
-        subprocess.run(
-            [
-                "sort",
-                "-t,",
-                f"-k{ts_idx},{ts_idx}",
-                f"-k{flow_idx},{flow_idx}",
-                str(body_path),
-            ],
-            stdout=out,
-            check=True,
-            env=env,
-        )
+    with open(input_path, "rb") as src, open(sorted_path, "wb") as out:
+        for _, _, offset, length in entries:
+            src.seek(offset)
+            out.write(src.read(length))
 
-    body_path.unlink()
     return sorted_path
 
 
 def classify_flow(src_ip, dst_ip, protocol, timestamp, schedule):
-    """Returns (label, keep). Strict binary: an ambiguous flow is always
-    dropped (label=None, keep=False), never flagged-but-kept."""
     confident = []
     boundary = []
     ip_only = []
@@ -86,13 +79,9 @@ def classify_flow(src_ip, dst_ip, protocol, timestamp, schedule):
         return confident[0]["attack_name"], True
 
     if confident or boundary:
-        # multiple confident matches, or a confident+boundary overlap,
-        # or boundary-only matches -> genuinely ambiguous
         return None, False
 
     if ip_only:
-        # known attacker/victim pair, but at a time nowhere near any of
-        # its scheduled windows -> too suspicious to call confidently benign
         return None, False
 
     return "Benign", True
