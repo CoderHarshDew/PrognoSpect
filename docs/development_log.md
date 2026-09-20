@@ -363,3 +363,143 @@ To avoid the storage and memory constraints associated with processing the entir
 Working directly with the raw PCAP files also allows **packet-level information** to be incorporated into PrognoSpect, which was not possible with the previously selected flow-level dataset variant.
 
 This changes the data-processing pipeline from primarily **flow-level processing** to a pipeline capable of incorporating both **packet-level and flow-level information**.
+
+---
+
+## CICFlowMeter Setup
+
+CICFlowMeter was selected for **flow-level feature extraction**, while additional packet-level information would be extracted using our own Python implementation.
+
+The **GintsEngelen CICFlowMeter fork** was selected and pinned to commit `4dd5319ad36457010d7a406505790b17a582810c`.
+
+The existing Java 25 installation was incompatible with CICFlowMeter's Gradle 4.2, so **Eclipse Temurin JDK 8** was installed and configured for the project.
+
+The initial runtime encountered an `UnsatisfiedLinkError` from jNetPcap. Investigation identified a mismatch between the repository's bundled **r1425** jNetPcap package, the Maven dependency, and references to r1500.
+
+The bundled r1425 JAR and native libraries were configured instead, and the incorrect r1500 references were corrected.
+
+The Windows CICFlowMeter launcher was also modified so that the native-library path is resolved relative to `cfm.bat` rather than the current working directory.
+
+CICFlowMeter was rebuilt successfully and tested on a CICIDS2018 PCAP, producing a valid flow CSV containing **6,001 flows**.
+
+---
+
+## Extraction Scope and Architecture
+
+The extraction pipeline was initially restricted to **TCP and UDP**, with ICMP and IGMP outside the current scope.
+
+The target flow-level schema was defined as **79 flow-level features** required by PrognoSpect.
+
+CICFlowMeter was established as an **external dependency** for flow-level extraction and will not be modified.
+
+The extraction architecture was defined around three levels of information:
+
+* **Packet-level information**
+* **Flow-level information**
+* **Cross-flow behavioural information**
+
+CICFlowMeter provides the flow-level representation, while packet-level and cross-flow features are implemented separately in Python.
+
+---
+
+## PCAP Reading and Parsing
+
+A dedicated **`PCAPReader`** was implemented to sequentially stream packets from a PCAP rather than loading the entire file into memory.
+
+A separate **PCAP frame parser** was implemented to interpret the packet data produced by the reader and expose the required packet-level information to subsequent extraction modules.
+
+This separation established a clear boundary between **reading raw PCAP data, parsing packets, and calculating features**, allowing the later packet-level and behavioural extraction modules to operate on a common parsed packet representation.
+
+---
+
+## Packet-Level Extraction
+
+The packet-level extractor was designed to use CICFlowMeter's flow CSV for **flow and direction mapping**.
+
+Using CICFlowMeter's mapping ensures that packet-level information remains aligned with the flow definitions used for flow-level features, avoiding inconsistencies that could occur if packets were independently grouped or assigned directions.
+
+The packet-level extraction module was implemented to obtain information such as TTL, fragmentation, TCP/window behaviour, payload information, timing, and retransmission-related features.
+
+The packet-level output was designed to be written as a separate CSV containing the extracted packet-derived features.
+
+Packet-level extraction was made configurable through a dedicated YAML configuration.
+
+---
+
+## Cross-Flow Behavioural Extraction
+
+A separate cross-flow behavioural extraction module was introduced to derive information that cannot be obtained from individual flows alone.
+
+The extracted behaviours include port diversity, scanning behaviour, port entropy, and source-destination communication rates.
+
+Cross-flow extraction was made configurable through a dedicated YAML configuration.
+
+The cross-flow output was designed to be written separately from the packet-level and flow-level outputs.
+
+---
+
+## Flow-Level Extraction
+
+CICFlowMeter was integrated into the extraction pipeline to generate the required **flow-level features** from each PCAP.
+
+The flow extraction component was kept separate from packet-level and cross-flow processing, allowing CICFlowMeter to remain an external dependency while the additional PrognoSpect-specific features are calculated independently.
+
+The flow-level output was written separately so that it could later be combined with the packet-level and cross-flow representations.
+
+---
+
+## Extraction Validation and Feature Investigation
+
+The individual extraction components were tested against sample PCAPs and their expected outputs.
+
+Testing identified several implementation issues, including a discrepancy between the flow count produced by the integrated extraction module and direct CICFlowMeter execution. The relevant logic was corrected so that the outputs matched.
+
+Feature comparisons also identified overlap between some packet-derived features and CICFlowMeter features. In particular, some payload-related values were identical because both calculations were based on the same underlying payload information. These columns were retained for the time being, with the affected calculations requiring further verification or correction.
+
+---
+
+## Extraction and Daily Merging
+
+A dedicated **merger** was designed to combine the separately generated packet-level, flow-level, and cross-flow CSV outputs into a single dataset.
+
+The merger is structured around the common flow identifiers so that information from the three extraction levels can be associated with the correct flow.
+
+PCAPs belonging to the same day are ultimately represented in a common daily dataset.
+
+A PCAP inventory system was also created, including per-archive PCAP lists.
+
+---
+
+## Repository Restructure
+
+Relevant data-processing components were moved from the `preprocessing` package into a dedicated **`extraction` package** to reflect the separation between raw PCAP extraction and later data cleaning/preprocessing.
+
+---
+
+## PCAP Download and Batch Processing
+
+An individual-PCAP downloader was developed to retrieve PCAPs directly from the CICIDS2018 S3 archives without downloading the complete ZIP archives.
+
+The large-scale processing system was designed around manageable batches of PCAPs. Downloaded PCAPs can be processed and then deleted before subsequent batches are downloaded.
+
+Because approximately **100 GB of SSD space** is available, storage-aware batch planning and disk-space checks were incorporated into the design.
+
+Restart and recovery behaviour was defined for download, processing, and deletion failures.
+
+---
+
+## Temporal Ordering and Ground-Truth Labelling
+
+The need to correctly handle **multi-part PCAPs** and concurrently captured PCAPs from different hosts was identified.
+
+Because the network-state forecaster depends on the actual temporal sequence of network activity, extracted flows must be chronologically ordered after merging.
+
+A downstream module was therefore designed to perform **daily ordering and ground-truth labelling together**, since both operations require the complete day's extracted data.
+
+The ordering scheme uses **Timestamp → Flow ID**, with additional network identifiers available for further tie-breaking.
+
+Ground-truth labels will be reconstructed using the CICIDS2018 attack schedule, attacker/victim information, and attack time windows.
+
+Ambiguous labelling decisions will be handled using a strict reliability filter, with uncertain flows dropped rather than retained.
+
+Manual Wireshark-based verification and correction of attack windows was deferred to a later implementation phase.
