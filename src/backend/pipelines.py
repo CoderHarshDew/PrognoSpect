@@ -1,6 +1,8 @@
 import csv
+import json
 import os
 import re
+import shutil
 import pandas as pd
 from datetime import datetime, timezone
 from itertools import zip_longest
@@ -11,6 +13,7 @@ from src.preprocessing.cleaning import initial_cleanup
 from src.preprocessing.preprocessing import PreprocessingPipeline
 from src.core.config import config_loader
 from src.core.logger import logger
+from src.database import pcap_archive_downloader
 from src.database.chunked_writer import write_csv_in_chunks
 from src.extraction.cross_flow_behavioral_feature_extractor import CrossFlowBehavioralFeatureExtractor
 from src.extraction.packet_feature_extractor import FlowPacketJoiner, extract_all
@@ -31,7 +34,7 @@ MERGED_OUTPUT_PATH = Path('dataset/extracted/merged')
 FLOW_EXTRACTION_CFG_PATH = Path('config/extraction/flow_extraction.yaml')
 FLOW_PACKET_JOINER_CFG_PATH = Path('config/extraction/flow_packet_joiner.yaml')
 TSHARK_PATH = 'C:/Program Files/Wireshark/tshark.exe'
-EXTRACTION_CHUNK_SIZE = 100_000
+EXTRACTION_CHUNK_SIZE = 20_000
 DAY_PATTERN = re.compile(r'\d{2}-\d{2}-\d{4}')
 DAY_FORMAT = '%d-%m-%Y'
 FLOW_ID_COLUMN = 'Flow ID'
@@ -415,7 +418,7 @@ def _extract_cross_flow_rows(flow_csv_path: Path, timestamp_format: str, protoco
         yield {FLOW_ID_COLUMN: flow_id, TIMESTAMP_COLUMN: timestamp, **values}
 
 
-def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_path: str | Path, output_path: str | Path):
+def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_path: str | Path, output_path: str | Path, append: bool = False):
 
     flow_path = Path(flow_path)
     packet_path = Path(packet_path)
@@ -429,7 +432,7 @@ def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_pa
             logger.error("Merge input file not found: %s", path)
             raise FileNotFoundError(f'Merge input file not found: {path}')
 
-    if output_path.is_file():
+    if not append and output_path.is_file():
         logger.info("Existing output file found. Removing: %s", output_path)
         output_path.unlink()
 
@@ -476,7 +479,7 @@ def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_pa
                     logger.error("Unmatched packet-level or cross-flow rows remain after merging all flow rows.")
                     raise ValueError('Packet-level or cross-flow rows could not be matched to any flow row')
 
-            merged_row_count = write_csv_in_chunks(output_path, merged_fieldnames, merged_rows(), EXTRACTION_CHUNK_SIZE)
+            merged_row_count = write_csv_in_chunks(output_path, merged_fieldnames, merged_rows(), EXTRACTION_CHUNK_SIZE, append)
 
     except Exception:
         logger.exception("Merge pipeline failed.")
@@ -487,12 +490,84 @@ def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_pa
     return output_path
 
 
+def _load_extraction_settings():
+    try:
+        flow_cfg = config_loader(FLOW_EXTRACTION_CFG_PATH)
+        joiner_cfg = config_loader(FLOW_PACKET_JOINER_CFG_PATH)
+    except Exception:
+        logger.exception("Failed to load extraction configurations.")
+        raise
+
+    cicflowmeter_cfg = flow_cfg['cicflowmeter']
+
+    return {'flow_cfg': flow_cfg, 'cicflowmeter_cfg': cicflowmeter_cfg, 'keep_raw_flow_csv': cicflowmeter_cfg.get('preserve_intermediate_csv', False), 'timestamp_format': joiner_cfg['cicflowmeter_csv']['timestamp_format'], 'protocol_number_to_label': joiner_cfg['protocol_number_to_label']}
+
+
+def _extract_day(day: str, pcap_files: list, extracted_path: Path, merged_output_path: Path, settings: dict):
+
+    flow_cfg = settings['flow_cfg']
+    cicflowmeter_cfg = settings['cicflowmeter_cfg']
+    keep_raw_flow_csv = settings['keep_raw_flow_csv']
+    timestamp_format = settings['timestamp_format']
+    protocol_number_to_label = settings['protocol_number_to_label']
+
+    work_path = extracted_path / '_work'
+    work_path.mkdir(parents=True, exist_ok=True)
+
+    flow_path = extracted_path / 'flow' / f'{day}.csv'
+    packet_path = extracted_path / 'packet' / f'{day}.csv'
+    cross_flow_path = extracted_path / 'cross_flow' / f'{day}.csv'
+    merged_path = merged_output_path / f'{day}.csv'
+
+    logger.info("Processing day %s. PCAP file(s): %d", day, len(pcap_files))
+
+    for stale_path in (flow_path, packet_path, cross_flow_path, merged_path):
+        if stale_path.is_file():
+            logger.info("Existing output file found. Removing: %s", stale_path)
+            stale_path.unlink()
+
+    for pcap_index, pcap_file in enumerate(pcap_files):
+        append = pcap_index > 0
+        work_flow_csv = work_path / f'{pcap_file.stem}_flow.csv'
+        raw_flow_csv = Path(cicflowmeter_cfg['work_dir']) / f'{pcap_file.name}_Flow.csv'
+
+        logger.info("Extracting %s (%d/%d) for day %s.", pcap_file.name, pcap_index + 1, len(pcap_files), day)
+
+        try:
+            run_flow_extraction(pcap_file, {**flow_cfg, 'cicflowmeter': {**cicflowmeter_cfg, 'preserve_intermediate_csv': True}, 'output': {**flow_cfg.get('output', {}), 'path': str(work_flow_csv)}})
+
+            flow_rows = write_csv_in_chunks(flow_path, _csv_header(work_flow_csv), _iter_csv_rows(work_flow_csv), EXTRACTION_CHUNK_SIZE, append)
+            logger.info("Flow-level extraction completed for %s. Rows: %d", pcap_file.name, flow_rows)
+
+            packet_rows = write_csv_in_chunks(packet_path, PACKET_LEVEL_FIELDNAMES, _extract_packet_level_rows(pcap_file, raw_flow_csv, work_flow_csv), EXTRACTION_CHUNK_SIZE, append)
+            logger.info("Packet-level extraction completed for %s. Rows: %d", pcap_file.name, packet_rows)
+
+            cross_flow_rows = write_csv_in_chunks(cross_flow_path, CROSS_FLOW_FIELDNAMES, _extract_cross_flow_rows(work_flow_csv, timestamp_format, protocol_number_to_label), EXTRACTION_CHUNK_SIZE, append)
+            logger.info("Cross-flow extraction completed for %s. Rows: %d", pcap_file.name, cross_flow_rows)
+
+        except Exception:
+            logger.exception("Extraction failed for %s.", pcap_file.name)
+            raise
+
+        finally:
+            if work_flow_csv.exists():
+                work_flow_csv.unlink()
+
+            if not keep_raw_flow_csv and raw_flow_csv.exists():
+                raw_flow_csv.unlink()
+
+    merged_file = merge_pipeline(flow_path, packet_path, cross_flow_path, merged_path)
+
+    logger.info("Completed day %s.", day)
+
+    return merged_file
+
+
 def extraction_pipeline(pcap_dataset_path: str | Path = PCAP_DATASET_PATH, extracted_path: str | Path = EXTRACTED_PATH, merged_output_path: str | Path = MERGED_OUTPUT_PATH):
 
     pcap_dataset_path = Path(pcap_dataset_path)
     extracted_path = Path(extracted_path)
     merged_output_path = Path(merged_output_path)
-    work_path = extracted_path / '_work'
 
     logger.info("Starting extraction pipeline. Input: %s | Extracted: %s | Merged: %s", pcap_dataset_path, extracted_path, merged_output_path)
 
@@ -504,74 +579,233 @@ def extraction_pipeline(pcap_dataset_path: str | Path = PCAP_DATASET_PATH, extra
 
     logger.info("Found %d PCAP file(s) across %d day(s).", sum(len(files) for files in days.values()), len(days))
 
-    try:
-        flow_cfg = config_loader(FLOW_EXTRACTION_CFG_PATH)
-        joiner_cfg = config_loader(FLOW_PACKET_JOINER_CFG_PATH)
-    except Exception:
-        logger.exception("Failed to load extraction configurations.")
-        raise
-
-    timestamp_format = joiner_cfg['cicflowmeter_csv']['timestamp_format']
-    protocol_number_to_label = joiner_cfg['protocol_number_to_label']
-    cicflowmeter_cfg = flow_cfg['cicflowmeter']
-    keep_raw_flow_csv = cicflowmeter_cfg.get('preserve_intermediate_csv', False)
-
-    work_path.mkdir(parents=True, exist_ok=True)
+    settings = _load_extraction_settings()
 
     merged_files = []
 
     try:
         for day, pcap_files in days.items():
-            flow_path = extracted_path / 'flow' / f'{day}.csv'
-            packet_path = extracted_path / 'packet' / f'{day}.csv'
-            cross_flow_path = extracted_path / 'cross_flow' / f'{day}.csv'
-            merged_path = merged_output_path / f'{day}.csv'
-
-            logger.info("Processing day %s. PCAP file(s): %d", day, len(pcap_files))
-
-            for stale_path in (flow_path, packet_path, cross_flow_path, merged_path):
-                if stale_path.is_file():
-                    logger.info("Existing output file found. Removing: %s", stale_path)
-                    stale_path.unlink()
-
-            for pcap_index, pcap_file in enumerate(pcap_files):
-                append = pcap_index > 0
-                work_flow_csv = work_path / f'{pcap_file.stem}_flow.csv'
-                raw_flow_csv = Path(cicflowmeter_cfg['work_dir']) / f'{pcap_file.name}_Flow.csv'
-
-                logger.info("Extracting %s (%d/%d) for day %s.", pcap_file.name, pcap_index + 1, len(pcap_files), day)
-
-                try:
-                    run_flow_extraction(pcap_file, {**flow_cfg, 'cicflowmeter': {**cicflowmeter_cfg, 'preserve_intermediate_csv': True}, 'output': {**flow_cfg.get('output', {}), 'path': str(work_flow_csv)}})
-
-                    flow_rows = write_csv_in_chunks(flow_path, _csv_header(work_flow_csv), _iter_csv_rows(work_flow_csv), EXTRACTION_CHUNK_SIZE, append)
-                    logger.info("Flow-level extraction completed for %s. Rows: %d", pcap_file.name, flow_rows)
-
-                    packet_rows = write_csv_in_chunks(packet_path, PACKET_LEVEL_FIELDNAMES, _extract_packet_level_rows(pcap_file, raw_flow_csv, work_flow_csv), EXTRACTION_CHUNK_SIZE, append)
-                    logger.info("Packet-level extraction completed for %s. Rows: %d", pcap_file.name, packet_rows)
-
-                    cross_flow_rows = write_csv_in_chunks(cross_flow_path, CROSS_FLOW_FIELDNAMES, _extract_cross_flow_rows(work_flow_csv, timestamp_format, protocol_number_to_label), EXTRACTION_CHUNK_SIZE, append)
-                    logger.info("Cross-flow extraction completed for %s. Rows: %d", pcap_file.name, cross_flow_rows)
-
-                except Exception:
-                    logger.exception("Extraction failed for %s.", pcap_file.name)
-                    raise
-
-                finally:
-                    if work_flow_csv.exists():
-                        work_flow_csv.unlink()
-
-                    if not keep_raw_flow_csv and raw_flow_csv.exists():
-                        raw_flow_csv.unlink()
-
-            merged_files.append(merge_pipeline(flow_path, packet_path, cross_flow_path, merged_path))
-
-            logger.info("Completed day %s.", day)
+            merged_files.append(_extract_day(day, pcap_files, extracted_path, merged_output_path, settings))
 
     except Exception:
         logger.exception("Extraction pipeline failed.")
         raise
 
     logger.info("Extraction pipeline completed successfully. Days: %d | Merged files: %s", len(days), [str(path) for path in merged_files])
+
+    return merged_files
+
+
+def _list_archive_days():
+    days = []
+
+    for row in pcap_archive_downloader.read_csv(pcap_archive_downloader.ALL_LIST):
+        if row['day'] not in days:
+            days.append(row['day'])
+
+    return days
+
+
+def _extraction_state_path(extracted_path: Path, day: str):
+    return extracted_path / 'state' / f'{day}.json'
+
+
+def _load_extraction_state(extracted_path: Path, day: str):
+    path = _extraction_state_path(extracted_path, day)
+
+    if not path.exists():
+        return {'batch_sizes': []}
+
+    return json.loads(path.read_text(encoding='utf-8'))
+
+
+def _save_extraction_state(extracted_path: Path, day: str, state: dict):
+    path = _extraction_state_path(extracted_path, day)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    temp = path.with_name(path.name + '.tmp')
+    temp.write_text(json.dumps(state, indent=2), encoding='utf-8')
+    os.replace(temp, path)
+
+
+def _extract_piece(pcap_file: Path, work_path: Path, group_flow_path: Path, packet_path: Path, settings: dict):
+
+    flow_cfg = settings['flow_cfg']
+    cicflowmeter_cfg = settings['cicflowmeter_cfg']
+    keep_raw_flow_csv = settings['keep_raw_flow_csv']
+
+    work_flow_csv = work_path / f'{pcap_file.stem}_flow.csv'
+    raw_flow_csv = Path(cicflowmeter_cfg['work_dir']) / f'{pcap_file.name}_Flow.csv'
+
+    logger.info("Extracting %s.", pcap_file.name)
+
+    try:
+        run_flow_extraction(pcap_file, {**flow_cfg, 'cicflowmeter': {**cicflowmeter_cfg, 'preserve_intermediate_csv': True}, 'output': {**flow_cfg.get('output', {}), 'path': str(work_flow_csv)}})
+
+        flow_rows = write_csv_in_chunks(group_flow_path, _csv_header(work_flow_csv), _iter_csv_rows(work_flow_csv), EXTRACTION_CHUNK_SIZE, group_flow_path.exists())
+        logger.info("Flow-level extraction completed for %s. Rows: %d", pcap_file.name, flow_rows)
+
+        packet_rows = write_csv_in_chunks(packet_path, PACKET_LEVEL_FIELDNAMES, _extract_packet_level_rows(pcap_file, raw_flow_csv, work_flow_csv), EXTRACTION_CHUNK_SIZE, packet_path.exists())
+        logger.info("Packet-level extraction completed for %s. Rows: %d", pcap_file.name, packet_rows)
+
+    except Exception:
+        logger.exception("Extraction failed for %s.", pcap_file.name)
+        raise
+
+    finally:
+        if work_flow_csv.exists():
+            work_flow_csv.unlink()
+
+        if not keep_raw_flow_csv and raw_flow_csv.exists():
+            raw_flow_csv.unlink()
+
+
+def _extract_batch(day: str, batch_index: int, groups: list, extracted_path: Path, merged_output_path: Path, settings: dict):
+
+    state = _load_extraction_state(extracted_path, day)
+    batch_sizes = state['batch_sizes']
+
+    if len(batch_sizes) > batch_index:
+        logger.info("Batch %d of %s is already merged. Skipping extraction.", batch_index + 1, day)
+        return
+
+    if len(batch_sizes) < batch_index:
+        logger.error("Batch %d of %s cannot be processed: only %d earlier batch(es) are recorded as merged.", batch_index + 1, day, len(batch_sizes))
+        raise RuntimeError(f'Extraction state for {day} is inconsistent with the downloader state')
+
+    pcap_archive_downloader.ensure_free_space(extracted_path, 0)
+
+    timestamp_format = settings['timestamp_format']
+    protocol_number_to_label = settings['protocol_number_to_label']
+
+    work_path = extracted_path / '_work'
+    batch_path = work_path / day / f'batch{batch_index}'
+    merged_path = merged_output_path / f'{day}.csv'
+
+    merged_output_path.mkdir(parents=True, exist_ok=True)
+
+    if batch_path.exists():
+        shutil.rmtree(batch_path)
+
+    batch_path.mkdir(parents=True)
+
+    if batch_index > 0:
+        if not merged_path.is_file() or merged_path.stat().st_size < batch_sizes[-1]:
+            logger.error("Merged CSV %s is missing or shorter than the recorded %d byte(s).", merged_path, batch_sizes[-1])
+            raise RuntimeError(f'Merged CSV for {day} is missing or shorter than recorded: {merged_path}')
+
+        with merged_path.open('r+b') as merged_file:
+            merged_file.truncate(batch_sizes[-1])
+
+    flow_path = batch_path / 'flow.csv'
+    packet_path = batch_path / 'packet.csv'
+    cross_flow_path = batch_path / 'cross_flow.csv'
+    group_flow_path = batch_path / 'group_flow.csv'
+
+    logger.info("Extracting batch %d of %s. Original PCAP(s): %d", batch_index + 1, day, len(groups))
+
+    for group_index, pieces in enumerate(groups):
+        logger.info("Original PCAP %d/%d of batch %d: %d piece(s).", group_index + 1, len(groups), batch_index + 1, len(pieces))
+
+        for pcap_file in pieces:
+            _extract_piece(pcap_file, work_path, group_flow_path, packet_path, settings)
+
+        write_csv_in_chunks(flow_path, _csv_header(group_flow_path), _iter_csv_rows(group_flow_path), EXTRACTION_CHUNK_SIZE, flow_path.exists())
+
+        cross_flow_rows = write_csv_in_chunks(cross_flow_path, CROSS_FLOW_FIELDNAMES, _extract_cross_flow_rows(group_flow_path, timestamp_format, protocol_number_to_label), EXTRACTION_CHUNK_SIZE, cross_flow_path.exists())
+        logger.info("Cross-flow extraction completed for original PCAP %d/%d of batch %d. Rows: %d", group_index + 1, len(groups), batch_index + 1, cross_flow_rows)
+
+        group_flow_path.unlink()
+
+    merge_pipeline(flow_path, packet_path, cross_flow_path, merged_path, append=batch_index > 0)
+
+    batch_sizes.append(merged_path.stat().st_size)
+    _save_extraction_state(extracted_path, day, state)
+
+    shutil.rmtree(batch_path)
+
+    logger.info("Batch %d of %s merged into %s.", batch_index + 1, day, merged_path)
+
+
+def _run_archive(day: str, limit: int | None, extracted_path: Path, merged_output_path: Path, settings: dict):
+
+    logger.info("Starting archive %s.", day)
+
+    batch_count = pcap_archive_downloader.plan(day, limit)
+
+    if batch_count == 0:
+        pcap_archive_downloader.delete(day)
+        logger.info("Archive %s already done, skipping.", day)
+        return None
+
+    logger.info("Archive %s: %d batch(es).", day, batch_count)
+
+    for batch_index in range(batch_count):
+        groups = pcap_archive_downloader.download_batch(day, batch_index)
+
+        if groups is None:
+            pcap_archive_downloader.delete_batch(day, batch_index)
+            logger.info("Archive %s batch %d/%d already done, skipping.", day, batch_index + 1, batch_count)
+            continue
+
+        if not groups or not all(groups):
+            logger.error("No PCAP files were downloaded for batch %d of archive %s.", batch_index + 1, day)
+            raise FileNotFoundError(f'No PCAP files downloaded for batch {batch_index + 1} of archive {day}')
+
+        logger.info("Archive %s batch %d/%d: extracting %d original PCAP(s).", day, batch_index + 1, batch_count, len(groups))
+
+        _extract_batch(day, batch_index, groups, extracted_path, merged_output_path, settings)
+
+        pcap_archive_downloader.delete_batch(day, batch_index)
+
+        logger.info("Archive %s batch %d/%d: PCAPs removed.", day, batch_index + 1, batch_count)
+
+    logger.info("Archive %s done.", day)
+
+    return merged_output_path / f'{day}.csv'
+
+
+def download_and_extract(day: str | None = None, limit: int | None = None, extracted_path: str | Path = EXTRACTED_PATH, merged_output_path: str | Path = MERGED_OUTPUT_PATH, skip_days: int = 0):
+
+    extracted_path = Path(extracted_path)
+    merged_output_path = Path(merged_output_path)
+    limit = limit if limit and limit > 0 else None
+
+    logger.info("Starting download and extraction pipeline. Archive: %s | Limit: %s | Skip days: %d | Extracted: %s | Merged: %s", day or 'all', limit or 'none', skip_days, extracted_path, merged_output_path)
+
+    if skip_days < 0:
+        logger.error("skip_days must not be negative: %d", skip_days)
+        raise ValueError(f'skip_days must not be negative: {skip_days}')
+
+    if day and skip_days:
+        logger.error("skip_days cannot be combined with a single archive: %s", day)
+        raise ValueError('skip_days cannot be combined with day')
+
+    all_days = [day] if day else _list_archive_days()
+
+    if skip_days >= len(all_days):
+        logger.error("skip_days (%d) leaves no archives to process; the list has %d archive(s).", skip_days, len(all_days))
+        raise ValueError(f'skip_days ({skip_days}) leaves no archives to process; the list has {len(all_days)} archive(s)')
+
+    days = all_days[skip_days:]
+
+    logger.info("Archives to process: %d | Skipped: %s", len(days), all_days[:skip_days] or 'none')
+
+    settings = _load_extraction_settings()
+
+    merged_files = []
+
+    try:
+        for archive_day in days:
+            merged_file = _run_archive(archive_day, limit, extracted_path, merged_output_path, settings)
+
+            if merged_file is not None:
+                merged_files.append(merged_file)
+
+    except Exception:
+        logger.exception("Download and extraction pipeline failed. Fix the issue and run the same command again to resume.")
+        raise
+
+    logger.info("Download and extraction pipeline completed successfully. Archives: %d | Newly merged files: %s", len(days), [str(path) for path in merged_files])
 
     return merged_files
