@@ -1,0 +1,13 @@
+version: 1.0
+
+timestamp_col: !!str 'Timestamp'
+flow_id_col: !!str 'Flow ID'
+src_ip_col: !!str 'Source IP'
+dst_ip_col: !!str 'Destination IP'
+protocol_col: !!str 'Protocol'
+
+valid_protocols:
+  - !!str '6'
+  - !!str '17'
+
+timestamp_format: !!str '%Y-%m-%d %H:%M:%S.%f'

@@ -21,58 +21,37 @@ from src.extraction.write_flow_features_csv import run as run_flow_extraction
 from src.extraction.label_and_order import label_and_order
 
 
-VALIDATION_SCHEMA_CFG_PATH = Path('config/preprocessing/validation_schema.yaml')
-VALIDATION_RULES_CFG_PATH = Path('config/preprocessing/validation_rules.yaml')
-CLEANING_CFG_PATH = Path('config/preprocessing/cleaning.yaml')
-PIPELINE_CFG_PATH = Path('config/preprocessing/pipeline.yaml')
-STATE_BUILDER_CFG_PATH = Path('config/preprocessing/state_builder.yaml')
-REPORT_PATH = Path('reports/')
-GLOBAL_CFG_PATH = Path('config/global_configuration.yaml')
+GLOBAL_CFG_PATH = Path('config/global_configurations.yaml')
 
-PCAP_DATASET_PATH = Path('dataset/pcap')
-EXTRACTED_PATH = Path('dataset/extracted')
-MERGED_OUTPUT_PATH = Path('dataset/extracted/merged')
-LABELED_OUTPUT_PATH = Path('dataset/extracted/labeled')
-LABELING_SCHEDULE_PATH = Path('config/labeling/schedule.yaml')
-FLOW_EXTRACTION_CFG_PATH = Path('config/extraction/flow_extraction.yaml')
-FLOW_PACKET_JOINER_CFG_PATH = Path('config/extraction/flow_packet_joiner.yaml')
-TSHARK_PATH = 'C:/Program Files/Wireshark/tshark.exe'
+_global_cfg = config_loader(GLOBAL_CFG_PATH)
+_config_paths = _global_cfg['config_paths']
+
+VALIDATION_SCHEMA_CFG_PATH = Path(_config_paths['validation_schema'])
+VALIDATION_RULES_CFG_PATH = Path(_config_paths['validation_rules'])
+CLEANING_CFG_PATH = Path(_config_paths['cleaning'])
+PIPELINE_CFG_PATH = Path(_config_paths['pipeline'])
+REPORT_PATH = Path(_global_cfg['report_path'])
+
+PCAP_DATASET_PATH = Path(_global_cfg['pcap_dataset_path'])
+EXTRACTED_PATH = Path(_global_cfg['extracted_path'])
+MERGED_OUTPUT_PATH = Path(_global_cfg['merged_output_path'])
+LABELED_OUTPUT_PATH = Path(_global_cfg['labeled_output_path'])
+LABELING_SCHEDULE_PATH = Path(_config_paths['labeling_schedule'])
+FLOW_EXTRACTION_CFG_PATH = Path(_config_paths['flow_extraction'])
+FLOW_PACKET_JOINER_CFG_PATH = Path(_config_paths['flow_packet_joiner'])
+TSHARK_PATH = _global_cfg['tshark_path']
 EXTRACTION_CHUNK_SIZE = 20_000
-DAY_PATTERN = re.compile(r'\d{2}-\d{2}-\d{4}')
-DAY_FORMAT = '%d-%m-%Y'
-FLOW_ID_COLUMN = 'Flow ID'
-TIMESTAMP_COLUMN = 'Timestamp'
+
+PIPELINES_CFG_PATH = Path(_config_paths['pipelines'])
+_pipelines_cfg = config_loader(PIPELINES_CFG_PATH)
+
+DAY_PATTERN = re.compile(_pipelines_cfg['day_pattern'])
+DAY_FORMAT = _pipelines_cfg['day_format']
+FLOW_ID_COLUMN = _pipelines_cfg['flow_id_column']
+TIMESTAMP_COLUMN = _pipelines_cfg['timestamp_column']
 KEY_COLUMNS = [FLOW_ID_COLUMN, TIMESTAMP_COLUMN]
-CROSS_FLOW_COLUMNS = ['dst_port_unique_cnt', 'dst_port_scan_rate', 'dst_port_sequentiality', 'dst_port_entropy', 'src_dst_pair_flow_rate']
-PACKET_LEVEL_COLUMNS = {
-    'ttl_fwd_mean': 'TTL Fwd Mean',
-    'ttl_fwd_std': 'TTL Fwd Std',
-    'ttl_fwd_min': 'TTL Fwd Min',
-    'ttl_fwd_max': 'TTL Fwd Max',
-    'ttl_bwd_mean': 'TTL Bwd Mean',
-    'ttl_bwd_std': 'TTL Bwd Std',
-    'ttl_bwd_min': 'TTL Bwd Min',
-    'ttl_bwd_max': 'TTL Bwd Max',
-    'tcp_window_fwd_mean': 'TCP Window Fwd Mean',
-    'tcp_window_fwd_std': 'TCP Window Fwd Std',
-    'tcp_window_fwd_min': 'TCP Window Fwd Min',
-    'tcp_window_fwd_max': 'TCP Window Fwd Max',
-    'tcp_window_bwd_mean': 'TCP Window Bwd Mean',
-    'tcp_window_bwd_std': 'TCP Window Bwd Std',
-    'tcp_window_bwd_min': 'TCP Window Bwd Min',
-    'tcp_window_bwd_max': 'TCP Window Bwd Max',
-    'fragmentation_count': 'Fragmentation Count',
-    'fragmentation_offset_mean': 'Fragmentation Offset Mean',
-    'fragmentation_offset_max': 'Fragmentation Offset Max',
-    'payload_mean': 'Payload Mean',
-    'payload_std': 'Payload Std',
-    'payload_min': 'Payload Min',
-    'payload_max': 'Payload Max',
-    'payload_median': 'Payload Median',
-    'payload_p25': 'Payload P25',
-    'payload_p75': 'Payload P75',
-    'retransmission_count': 'Retransmission Count',
-}
+CROSS_FLOW_COLUMNS = _pipelines_cfg['cross_flow_columns']
+PACKET_LEVEL_COLUMNS = _pipelines_cfg['packet_level_columns']
 PACKET_LEVEL_FIELDNAMES = KEY_COLUMNS + list(PACKET_LEVEL_COLUMNS.values())
 CROSS_FLOW_FIELDNAMES = KEY_COLUMNS + CROSS_FLOW_COLUMNS
 

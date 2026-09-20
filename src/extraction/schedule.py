@@ -3,9 +3,6 @@ from pathlib import Path
 
 from src.core.config import config_loader
 
-# Ambiguity margin around each attack's official start/finish time.
-# A flow landing inside this band (but outside the raw window) is treated
-# as boundary-ambiguous, never as a confident match either way.
 BOUNDARY_MARGIN = timedelta(seconds=60)
 
 PROTOCOL_CODES = {"tcp": 6, "udp": 17}

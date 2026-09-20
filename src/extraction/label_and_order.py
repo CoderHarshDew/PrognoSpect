@@ -3,16 +3,23 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from src.core.config import config_loader
 from src.extraction.schedule import load_schedule
 
-TIMESTAMP_COL = "Timestamp"
-FLOW_ID_COL = "Flow ID"
-SRC_IP_COL = "Source IP"
-DST_IP_COL = "Destination IP"
-PROTOCOL_COL = "Protocol"
+GLOBAL_CFG_PATH = Path('config/global_configurations.yaml')
 
-VALID_PROTOCOLS = {"6", "17"}
-TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S.%f"
+_global_cfg = config_loader(GLOBAL_CFG_PATH)
+LABEL_AND_ORDER_CFG_PATH = Path(_global_cfg['config_paths']['label_and_order'])
+_label_and_order_cfg = config_loader(LABEL_AND_ORDER_CFG_PATH)
+
+TIMESTAMP_COL = _label_and_order_cfg['timestamp_col']
+FLOW_ID_COL = _label_and_order_cfg['flow_id_col']
+SRC_IP_COL = _label_and_order_cfg['src_ip_col']
+DST_IP_COL = _label_and_order_cfg['dst_ip_col']
+PROTOCOL_COL = _label_and_order_cfg['protocol_col']
+
+VALID_PROTOCOLS = set(_label_and_order_cfg['valid_protocols'])
+TIMESTAMP_FORMAT = _label_and_order_cfg['timestamp_format']
 
 
 def read_header(csv_path: Path):

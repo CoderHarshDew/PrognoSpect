@@ -2,3 +2,22 @@ version: 1.0
 
 raw_dataset_path: !!str "dataset/raw/"
 cleaned_dataset_path: !!str "dataset/cleaned/cleaned_dataset.parquet"
+
+pcap_dataset_path: !!str "dataset/pcap"
+extracted_path: !!str "dataset/extracted"
+merged_output_path: !!str "dataset/extracted/merged"
+labeled_output_path: !!str "dataset/extracted/labeled"
+report_path: !!str "reports/"
+
+tshark_path: !!str "C:/Program Files/Wireshark/tshark.exe"
+
+config_paths:
+  validation_schema: !!str "config/preprocessing/validation_schema.yaml"
+  validation_rules: !!str "config/preprocessing/validation_rules.yaml"
+  cleaning: !!str "config/preprocessing/cleaning.yaml"
+  pipeline: !!str "config/preprocessing/pipeline.yaml"
+  labeling_schedule: !!str "config/labeling/schedule.yaml"
+  flow_extraction: !!str "config/extraction/flow_extraction.yaml"
+  flow_packet_joiner: !!str "config/extraction/flow_packet_joiner.yaml"
+  pipelines: !!str "config/pipelines.yaml"
+  label_and_order: !!str "config/label_and_order.yaml"
