@@ -327,6 +327,20 @@ def _row_key(row):
     return (row[FLOW_ID_COLUMN], row[TIMESTAMP_COLUMN])
 
 
+def _parse_timestamp(value: str, timestamp_format: str) -> datetime:
+    """Parse a flow timestamp, falling back to a format without fractional
+    seconds when the value itself has none (some CICFlowMeter rows omit
+    the microsecond component entirely, e.g. exact-second timestamps)."""
+
+    try:
+        return datetime.strptime(value, timestamp_format)
+    except ValueError:
+        if '.' in timestamp_format and '.' not in value:
+            fallback_format = timestamp_format.split('.')[0]
+            return datetime.strptime(value, fallback_format)
+        raise
+
+
 def _group_pcaps_by_day(pcap_dataset_path: Path):
     pcap_files = sorted(pcap_dataset_path.glob('*.pcap'))
 
@@ -403,7 +417,7 @@ def _extract_cross_flow_rows(flow_csv_path: Path, timestamp_format: str, protoco
     observations = []
 
     for index, row in enumerate(_iter_csv_rows(flow_csv_path)):
-        timestamp = datetime.strptime(row[TIMESTAMP_COLUMN], timestamp_format).replace(tzinfo=timezone.utc)
+        timestamp = _parse_timestamp(row[TIMESTAMP_COLUMN], timestamp_format).replace(tzinfo=timezone.utc)
         protocol_number = int(row['Protocol'])
         observation = {'timestamp': timestamp, 'src_ip': row['Source IP'], 'dst_ip': row['Destination IP'], 'dst_port': int(row['Destination Port']), 'protocol': protocol_number_to_label.get(protocol_number, str(protocol_number))}
 
