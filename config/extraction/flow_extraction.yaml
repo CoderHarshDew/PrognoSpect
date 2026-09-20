@@ -1,7 +1,7 @@
 cicflowmeter:
   enabled: true
-  executable: "D:\\programming\\Python\\PrognoSpect\\third_party\\CICFlowMeter\\bin\\cfm.bat"
-  work_dir: "D:\\temp\\prognospect_cicfm"
+  executable: "third_party/CICFlowMeter/bin/cfm.bat"
+  work_dir: "out/sample"
   preserve_intermediate_csv: false
   flow_timeout_seconds: 120
   flow_activity_timeout_seconds: 5
@@ -10,7 +10,7 @@ providers:
   - cicflowmeter
 
 output:
-  path: "D:\\programming\\Python\\PrognoSpect\\out\\sample\\flows.csv"
+  path: "out/sample/flows.csv"
   missing_value: ""
 
 schema:
