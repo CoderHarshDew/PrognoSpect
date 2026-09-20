@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-from schedule import load_schedule
+from src.extraction.schedule import load_schedule
 
 TIMESTAMP_COL = "Timestamp"
 FLOW_ID_COL = "Flow ID"
