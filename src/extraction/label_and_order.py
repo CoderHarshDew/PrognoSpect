@@ -1,4 +1,5 @@
 import csv
+import os
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -58,6 +59,20 @@ def sort_merged_csv(input_path: Path, header: list) -> Path:
     return sorted_path
 
 
+def _parse_timestamp(value: str, timestamp_format: str) -> datetime:
+    """Parse a flow timestamp, falling back to a format without fractional
+    seconds when the value itself has none (some CICFlowMeter rows omit
+    the microsecond component entirely, e.g. exact-second timestamps)."""
+
+    try:
+        return datetime.strptime(value, timestamp_format)
+    except ValueError:
+        if '.' in timestamp_format and '.' not in value:
+            fallback_format = timestamp_format.split('.')[0]
+            return datetime.strptime(value, fallback_format)
+        raise
+
+
 def classify_flow(src_ip, dst_ip, protocol, timestamp, schedule):
     confident = []
     boundary = []
@@ -106,29 +121,37 @@ def label_and_order(input_path: Path, schedule_path: Path, output_path: Path):
     sorted_path = sort_merged_csv(input_path, header)
 
     counts = {"dropped": 0}
+    temp_output_path = output_path.with_name(output_path.name + '.tmp')
 
-    with open(sorted_path, "r", newline="") as src_f, open(output_path, "w", newline="") as out_f:
-        reader = csv.reader(src_f)
-        writer = csv.writer(out_f)
-        writer.writerow(header + ["Label"])
+    try:
+        with open(sorted_path, "r", newline="") as src_f, open(temp_output_path, "w", newline="") as out_f:
+            reader = csv.reader(src_f)
+            writer = csv.writer(out_f)
+            writer.writerow(header + ["Label"])
 
-        for row in reader:
-            protocol = row[proto_i]
-            if protocol not in VALID_PROTOCOLS:
-                counts["dropped"] += 1
-                continue
+            for row in reader:
+                protocol = row[proto_i]
+                if protocol not in VALID_PROTOCOLS:
+                    counts["dropped"] += 1
+                    continue
 
-            timestamp = datetime.strptime(row[ts_i], TIMESTAMP_FORMAT)
-            label, keep = classify_flow(
-                row[src_i], row[dst_i], int(protocol), timestamp, schedule
-            )
+                timestamp = _parse_timestamp(row[ts_i], TIMESTAMP_FORMAT)
+                label, keep = classify_flow(
+                    row[src_i], row[dst_i], int(protocol), timestamp, schedule
+                )
 
-            if not keep:
-                counts["dropped"] += 1
-                continue
+                if not keep:
+                    counts["dropped"] += 1
+                    continue
 
-            counts[label] = counts.get(label, 0) + 1
-            writer.writerow(row + [label])
+                counts[label] = counts.get(label, 0) + 1
+                writer.writerow(row + [label])
+
+        os.replace(temp_output_path, output_path)
+
+    finally:
+        if temp_output_path.exists():
+            temp_output_path.unlink()
 
     sorted_path.unlink()
 
