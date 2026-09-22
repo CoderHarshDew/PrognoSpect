@@ -1,13 +1,21 @@
-version: 1.0
+version: 2.0
 
 timestamp_col: !!str 'Timestamp'
 flow_id_col: !!str 'Flow ID'
 src_ip_col: !!str 'Source IP'
 dst_ip_col: !!str 'Destination IP'
+dst_port_col: !!str 'Destination Port'
 protocol_col: !!str 'Protocol'
+label_col: !!str 'Label'
+payload_length_fwd_col: !!str 'Total Length of Fwd Packets'
 
 valid_protocols:
   - !!str '6'
   - !!str '17'
 
 timestamp_format: !!str '%Y-%m-%d %H:%M:%S.%f'
+
+default_label: !!str 'BENIGN'
+
+artifact_flow_ids:
+  - !!str '8.0.6.4-8.6.0.1-0-0-0'
