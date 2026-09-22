@@ -733,6 +733,25 @@ def _run_archive(day: str, limit: int | None, extracted_path: Path, merged_outpu
 
     if batch_count == 0:
         pcap_archive_downloader.delete(day)
+
+        merged_path = merged_output_path / f'{day}.csv'
+        labeled_path = LABELED_OUTPUT_PATH / f'{day}.csv'
+
+        if merged_path.is_file() and not labeled_path.exists():
+            labeled_path.parent.mkdir(parents=True, exist_ok=True)
+
+            logger.info("Archive %s is extracted but not labeled yet. Running labeling and ordering.", day)
+
+            try:
+                label_and_order(merged_path, LABELING_SCHEDULE_PATH, labeled_path)
+            except Exception:
+                logger.exception("Labeling and ordering failed for archive %s.", day)
+                raise
+
+            logger.info("Archive %s done. Labeled output: %s", day, labeled_path)
+
+            return labeled_path
+
         logger.info("Archive %s already done, skipping.", day)
         return None
 

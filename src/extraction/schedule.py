@@ -1,43 +1,42 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from pathlib import Path
 
 from src.core.config import config_loader
 
-BOUNDARY_MARGIN = timedelta(seconds=60)
-
-PROTOCOL_CODES = {"tcp": 6, "udp": 17}
+PROTOCOL_CODES = {"tcp": 6, "udp": 17, "icmp": 1}
 
 
-def protocol_code(hint):
-    if hint is None:
-        return None
-    return PROTOCOL_CODES.get(hint.lower())
+def parse_schedule_datetime(value):
+    return datetime.fromisoformat(value.replace("Z", "+00:00")).replace(tzinfo=None)
 
 
-def parse_schedule_datetime(date_str, time_str):
-    return datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
+def protocol_code(value):
+    if value is None or isinstance(value, int):
+        return value
+    return PROTOCOL_CODES[value.lower()]
 
 
 def load_schedule(path: Path):
     raw = config_loader(path)
 
-    entries = []
-    for item in raw["schedule"]:
-        start_dt = parse_schedule_datetime(item["date"], item["start_time"])
-        finish_dt = parse_schedule_datetime(item["date"], item["finish_time"])
+    rules = []
+    for day in raw["days"]:
+        for attack in day["attacks"]:
+            for rule in attack["rules"]:
+                src_ips = rule.get("src_ips")
+                dst_ips = rule.get("dst_ips")
+                dst_ports = rule.get("dst_ports")
 
-        entries.append({
-            "id": item["id"],
-            "attack_name": item["attack_name"],
-            "start_dt": start_dt,
-            "finish_dt": finish_dt,
-            "boundary_start": start_dt - BOUNDARY_MARGIN,
-            "boundary_finish": finish_dt + BOUNDARY_MARGIN,
-            "attacker_ips": set(item["attacker_ips"]),
-            "victim_ips": set(item["victim_ips"]),
-            "protocol_hint": protocol_code(item.get("protocol_hint")),
-            "port_hint": item.get("port_hint"),  # parsed but not enforced (by request)
-            "confidence": item.get("confidence", "low"),
-        })
+                rules.append({
+                    "label": rule["label"],
+                    "start_dt": parse_schedule_datetime(rule["start"]),
+                    "finish_dt": parse_schedule_datetime(rule["finish"]),
+                    "src_ips": set(src_ips) if src_ips is not None else None,
+                    "dst_ips": set(dst_ips) if dst_ips is not None else None,
+                    "dst_ports": set(dst_ports) if dst_ports is not None else None,
+                    "protocol": protocol_code(rule.get("protocol")),
+                    "payload_filter": rule.get("payload_filter", False),
+                    "extra_conditions": rule.get("extra_conditions", []),
+                })
 
-    return entries
+    return rules

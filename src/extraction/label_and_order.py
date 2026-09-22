@@ -17,10 +17,15 @@ TIMESTAMP_COL = _label_and_order_cfg['timestamp_col']
 FLOW_ID_COL = _label_and_order_cfg['flow_id_col']
 SRC_IP_COL = _label_and_order_cfg['src_ip_col']
 DST_IP_COL = _label_and_order_cfg['dst_ip_col']
+DST_PORT_COL = _label_and_order_cfg['dst_port_col']
 PROTOCOL_COL = _label_and_order_cfg['protocol_col']
+LABEL_COL = _label_and_order_cfg['label_col']
+PAYLOAD_FWD_COL = _label_and_order_cfg['payload_length_fwd_col']
 
 VALID_PROTOCOLS = set(_label_and_order_cfg['valid_protocols'])
 TIMESTAMP_FORMAT = _label_and_order_cfg['timestamp_format']
+DEFAULT_LABEL = _label_and_order_cfg['default_label']
+ARTIFACT_FLOW_IDS = set(_label_and_order_cfg.get('artifact_flow_ids', []))
 
 
 def read_header(csv_path: Path):
@@ -60,10 +65,6 @@ def sort_merged_csv(input_path: Path, header: list) -> Path:
 
 
 def _parse_timestamp(value: str, timestamp_format: str) -> datetime:
-    """Parse a flow timestamp, falling back to a format without fractional
-    seconds when the value itself has none (some CICFlowMeter rows omit
-    the microsecond component entirely, e.g. exact-second timestamps)."""
-
     try:
         return datetime.strptime(value, timestamp_format)
     except ValueError:
@@ -73,79 +74,124 @@ def _parse_timestamp(value: str, timestamp_format: str) -> datetime:
         raise
 
 
-def classify_flow(src_ip, dst_ip, protocol, timestamp, schedule):
-    confident = []
-    boundary = []
-    ip_only = []
+_OPS = {
+    "eq": lambda a, b: a == b,
+    "ne": lambda a, b: a != b,
+    "gt": lambda a, b: a > b,
+    "gte": lambda a, b: a >= b,
+    "lt": lambda a, b: a < b,
+    "lte": lambda a, b: a <= b,
+    "in": lambda a, b: a in b,
+    "not_in": lambda a, b: a not in b,
+}
 
-    for entry in schedule:
-        is_pair = (
-            (src_ip in entry["attacker_ips"] and dst_ip in entry["victim_ips"])
-            or (dst_ip in entry["attacker_ips"] and src_ip in entry["victim_ips"])
-        )
-        if not is_pair:
-            continue
 
-        if entry["confidence"] in ("high", "medium") and entry["protocol_hint"] is not None:
-            if protocol != entry["protocol_hint"]:
-                continue
+def _eval_condition(cond: dict, row: list, header_index: dict) -> bool:
+    if "any_of" in cond:
+        return any(_eval_condition(sub, row, header_index) for sub in cond["any_of"])
+    if "all_of" in cond:
+        return all(_eval_condition(sub, row, header_index) for sub in cond["all_of"])
 
-        if entry["start_dt"] <= timestamp <= entry["finish_dt"]:
-            confident.append(entry)
-        elif entry["boundary_start"] <= timestamp < entry["start_dt"] or entry["finish_dt"] < timestamp <= entry["boundary_finish"]:
-            boundary.append(entry)
-        else:
-            ip_only.append(entry)
+    feature_i = header_index[cond["feature"]]
+    op = _OPS[cond["op"]]
+    value = cond["value"]
+    raw = row[feature_i]
 
-    if len(confident) == 1 and not boundary:
-        return confident[0]["attack_name"], True
+    try:
+        actual = raw if isinstance(value, str) else float(raw)
+    except (TypeError, ValueError):
+        return False
 
-    if confident or boundary:
-        return None, False
+    return op(actual, value)
 
-    if ip_only:
-        return None, False
 
-    return "Benign", True
+def rule_matches(rule: dict, row: list, header_index: dict, src_ip: str, dst_ip: str,
+                  dst_port: int, protocol: int, timestamp: datetime) -> bool:
+    if not (rule["start_dt"] <= timestamp <= rule["finish_dt"]):
+        return False
+    if rule["src_ips"] is not None and src_ip not in rule["src_ips"]:
+        return False
+    if rule["dst_ips"] is not None and dst_ip not in rule["dst_ips"]:
+        return False
+    if rule["dst_ports"] is not None and dst_port not in rule["dst_ports"]:
+        return False
+    if rule["protocol"] is not None and protocol != rule["protocol"]:
+        return False
+
+    if rule["payload_filter"]:
+        try:
+            if float(row[header_index[PAYLOAD_FWD_COL]]) != 0:
+                return False
+        except (TypeError, ValueError):
+            return False
+
+    for cond in rule["extra_conditions"]:
+        if not _eval_condition(cond, row, header_index):
+            return False
+
+    return True
+
+
+def classify_flow(row: list, header_index: dict, rules: list, src_ip: str, dst_ip: str,
+                   dst_port: int, protocol: int, timestamp: datetime) -> str:
+    label = DEFAULT_LABEL
+    for rule in rules:
+        if rule_matches(rule, row, header_index, src_ip, dst_ip, dst_port, protocol, timestamp):
+            label = rule["label"]
+    return label
 
 
 def label_and_order(input_path: Path, schedule_path: Path, output_path: Path):
-    schedule = load_schedule(schedule_path)
-    header = read_header(input_path)
+    rules = load_schedule(schedule_path)
 
-    ts_i = header.index(TIMESTAMP_COL)
-    src_i = header.index(SRC_IP_COL)
-    dst_i = header.index(DST_IP_COL)
-    proto_i = header.index(PROTOCOL_COL)
+    header = read_header(input_path)
+    header_index = {name: i for i, name in enumerate(header)}
+
+    ts_i = header_index[TIMESTAMP_COL]
+    flow_id_i = header_index[FLOW_ID_COL]
+    src_i = header_index[SRC_IP_COL]
+    dst_i = header_index[DST_IP_COL]
+    dst_port_i = header_index[DST_PORT_COL]
+    proto_i = header_index[PROTOCOL_COL]
+    label_i = header_index.get(LABEL_COL)
+    if label_i is None:
+        header = header + [LABEL_COL]
+        label_i = len(header) - 1
 
     sorted_path = sort_merged_csv(input_path, header)
 
-    counts = {"dropped": 0}
+    counts = {"protocol_dropped": 0}
     temp_output_path = output_path.with_name(output_path.name + '.tmp')
 
     try:
         with open(sorted_path, "r", newline="") as src_f, open(temp_output_path, "w", newline="") as out_f:
             reader = csv.reader(src_f)
             writer = csv.writer(out_f)
-            writer.writerow(header + ["Label"])
+            writer.writerow(header)
 
             for row in reader:
-                protocol = row[proto_i]
-                if protocol not in VALID_PROTOCOLS:
-                    counts["dropped"] += 1
+                protocol_raw = row[proto_i]
+                if protocol_raw not in VALID_PROTOCOLS:
+                    counts["protocol_dropped"] += 1
                     continue
 
-                timestamp = _parse_timestamp(row[ts_i], TIMESTAMP_FORMAT)
-                label, keep = classify_flow(
-                    row[src_i], row[dst_i], int(protocol), timestamp, schedule
-                )
+                if row[flow_id_i] in ARTIFACT_FLOW_IDS:
+                    label = DEFAULT_LABEL
+                else:
+                    timestamp = _parse_timestamp(row[ts_i], TIMESTAMP_FORMAT)
+                    dst_port = int(row[dst_port_i])
+                    protocol = int(protocol_raw)
+                    label = classify_flow(
+                        row, header_index, rules,
+                        row[src_i], row[dst_i], dst_port, protocol, timestamp,
+                    )
 
-                if not keep:
-                    counts["dropped"] += 1
-                    continue
-
+                if label_i < len(row):
+                    row[label_i] = label
+                else:
+                    row.append(label)
                 counts[label] = counts.get(label, 0) + 1
-                writer.writerow(row + [label])
+                writer.writerow(row)
 
         os.replace(temp_output_path, output_path)
 
@@ -155,8 +201,8 @@ def label_and_order(input_path: Path, schedule_path: Path, output_path: Path):
 
     sorted_path.unlink()
 
-    kept = sum(v for k, v in counts.items() if k != "dropped")
-    print(f"Done. Kept: {kept}, Dropped: {counts['dropped']}", file=sys.stderr)
+    kept = sum(v for k, v in counts.items() if k != "protocol_dropped")
+    print(f"Done. Kept: {kept}, Protocol-dropped: {counts['protocol_dropped']}", file=sys.stderr)
     for label, n in sorted(counts.items()):
-        if label != "dropped":
+        if label != "protocol_dropped":
             print(f"  {label}: {n}", file=sys.stderr)

@@ -28,6 +28,13 @@ RECORD_HEADER_SIZE = 16
 MAX_RECORD_BYTES = 16 * 1024 * 1024
 SPLIT_BUFFER_SIZE = 8 * 1024 * 1024
 PCAP_MAGICS = {b"\xd4\xc3\xb2\xa1": "<", b"\xa1\xb2\xc3\xd4": ">", b"\x4d\x3c\xb2\xa1": "<", b"\xa1\xb2\x3c\x4d": ">"}
+PCAPNG_SHB_MAGIC = b"\x0a\x0d\x0d\x0a"
+PCAPNG_BOM = 0x1A2B3C4D
+PCAPNG_SHB_TYPE = 0x0A0D0D0A
+PCAPNG_IDB_TYPE = 0x00000001
+PCAPNG_PB_TYPE = 0x00000002
+PCAPNG_SPB_TYPE = 0x00000003
+PCAPNG_EPB_TYPE = 0x00000006
 
 
 def pcap_dir(day):
@@ -280,8 +287,131 @@ def close_piece(handle, part, final):
     return final
 
 
+def pcapng_endian(bom_bytes):
+    if struct.unpack("<I", bom_bytes)[0] == PCAPNG_BOM:
+        return "<"
+    if struct.unpack(">I", bom_bytes)[0] == PCAPNG_BOM:
+        return ">"
+    raise ValueError("Invalid pcapng byte-order magic")
+
+
+def read_pcapng_block(handle, endian):
+    head = handle.read(8)
+    if not head:
+        return None, b"", endian
+    if len(head) < 8:
+        raise ValueError("Truncated pcapng block header")
+    if endian is None:
+        if head[:4] != PCAPNG_SHB_MAGIC:
+            raise ValueError("Expected a pcapng section header block")
+        bom = handle.read(4)
+        if len(bom) < 4:
+            raise ValueError("Truncated pcapng section header block")
+        endian = pcapng_endian(bom)
+        length = struct.unpack(endian + "I", head[4:8])[0]
+        rest = handle.read(length - 12)
+        if len(rest) < length - 12:
+            raise ValueError("Truncated pcapng section header block")
+        block_type = struct.unpack(endian + "I", head[:4])[0]
+        return block_type, head + bom + rest, endian
+    block_type = struct.unpack(endian + "I", head[:4])[0]
+    length = struct.unpack(endian + "I", head[4:8])[0]
+    if length < 12:
+        raise ValueError("Corrupt pcapng block length")
+    rest = handle.read(length - 8)
+    if len(rest) < length - 8:
+        raise ValueError("Truncated pcapng block")
+    return block_type, head + rest, endian
+
+
+def is_pcapng(path):
+    with open(path, "rb") as handle:
+        return handle.read(4) == PCAPNG_SHB_MAGIC
+
+
+def parse_idb(raw, endian):
+    body = raw[8:-4]
+    linktype = struct.unpack_from(endian + "H", body, 0)[0]
+    snaplen = struct.unpack_from(endian + "I", body, 4)[0] or 262144
+    tsresol = 1e-6
+    offset = 8
+    while offset + 4 <= len(body):
+        opt_code, opt_len = struct.unpack_from(endian + "HH", body, offset)
+        offset += 4
+        if opt_code == 0:
+            break
+        value = body[offset:offset + opt_len]
+        if opt_code == 9 and value:
+            byte = value[0]
+            tsresol = 2.0 ** -(byte & 0x7F) if byte & 0x80 else 10.0 ** -byte
+        offset += opt_len + ((-opt_len) % 4)
+    return linktype, snaplen, tsresol
+
+
+def convert_pcapng_to_pcap(source, dest):
+    """CICFlowMeter (and the classic-pcap splitter below) only understand classic pcap,
+    so any pcapng capture is rewritten into a classic pcap file before it's used further."""
+    source = Path(source)
+    dest = Path(dest)
+    part = dest.with_name(dest.name + ".part")
+    linktype, snaplen, tsresol = 1, 262144, 1e-6
+    wrote_header = False
+    packets = 0
+    try:
+        with open(source, "rb") as handle, open(part, "wb") as out:
+            block_type, raw, endian = read_pcapng_block(handle, None)
+            if block_type != PCAPNG_SHB_TYPE:
+                raise ValueError(f"Unsupported capture format in {source.name}; expected a pcapng section header block")
+            while True:
+                block_type, raw, endian = read_pcapng_block(handle, endian)
+                if block_type is None:
+                    break
+                if block_type in (PCAPNG_SHB_TYPE, PCAPNG_IDB_TYPE):
+                    if block_type == PCAPNG_IDB_TYPE and not wrote_header:
+                        linktype, snaplen, tsresol = parse_idb(raw, endian)
+                    continue
+                if block_type in (PCAPNG_EPB_TYPE, PCAPNG_PB_TYPE):
+                    body = raw[8:-4]
+                    ts_high, ts_low, cap_len, orig_len = struct.unpack_from(endian + "IIII", body, 4)
+                    data = body[20:20 + cap_len]
+                    timestamp = ((ts_high << 32) | ts_low) * tsresol
+                elif block_type == PCAPNG_SPB_TYPE:
+                    body = raw[8:-4]
+                    orig_len = struct.unpack_from(endian + "I", body, 0)[0]
+                    cap_len = min(orig_len, snaplen)
+                    data = body[4:4 + cap_len]
+                    timestamp = 0.0
+                else:
+                    continue
+                if not wrote_header:
+                    out.write(struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, snaplen, linktype))
+                    wrote_header = True
+                ts_sec = int(timestamp)
+                ts_usec = int(round((timestamp - ts_sec) * 1e6))
+                if ts_usec >= 1_000_000:
+                    ts_sec += 1
+                    ts_usec -= 1_000_000
+                out.write(struct.pack("<IIII", ts_sec, ts_usec, len(data), orig_len))
+                out.write(data)
+                packets += 1
+            if not wrote_header:
+                out.write(struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, snaplen, linktype))
+        os.replace(part, dest)
+    finally:
+        part.unlink(missing_ok=True)
+    return packets
+
+
 def split_pcap(source, max_bytes):
     source = Path(source)
+    with open(source, "rb") as probe:
+        magic = probe.read(4)
+    read_source = source
+    converted = None
+    if magic == PCAPNG_SHB_MAGIC:
+        converted = source.with_name(source.stem + ".converting.pcap")
+        convert_pcapng_to_pcap(source, converted)
+        read_source = converted
     pieces = []
     output = None
     part = None
@@ -291,11 +421,12 @@ def split_pcap(source, max_bytes):
     position = 0
     consumed = GLOBAL_HEADER_SIZE
     buffer = bytearray()
+    corrupt_at = None
     try:
-        with open(source, "rb") as handle:
+        with open(read_source, "rb") as handle:
             header = handle.read(GLOBAL_HEADER_SIZE)
             if len(header) < GLOBAL_HEADER_SIZE or header[:4] not in PCAP_MAGICS:
-                raise ValueError(f"Unsupported capture format (first bytes: {header[:4].hex() or 'none'}) in {source.name}; only classic pcap files can be split")
+                raise ValueError(f"Unsupported capture format (first bytes: {header[:4].hex() or 'none'}) in {source.name}; only classic pcap and pcapng files can be split")
             endian = PCAP_MAGICS[header[:4]]
             while True:
                 chunk = handle.read(SPLIT_BUFFER_SIZE)
@@ -303,7 +434,8 @@ def split_pcap(source, max_bytes):
                 while len(buffer) - position >= RECORD_HEADER_SIZE:
                     included = struct.unpack_from(endian + "I", buffer, position + 8)[0]
                     if included > MAX_RECORD_BYTES:
-                        raise ValueError(f"Corrupt record header at byte {consumed + position:,} of {source.name}")
+                        corrupt_at = consumed + position
+                        break
                     total = RECORD_HEADER_SIZE + included
                     if len(buffer) - position < total:
                         break
@@ -323,20 +455,26 @@ def split_pcap(source, max_bytes):
                 del buffer[:position]
                 position = 0
                 pending = 0
+                if corrupt_at is not None:
+                    print(f"      warning: corrupt record header at byte {corrupt_at:,} of {source.name}; truncating here, rest of file dropped")
+                    buffer = bytearray()
+                    break
                 if not chunk:
                     break
             if buffer:
                 print(f"      warning: dropped {len(buffer):,} trailing bytes of an incomplete record in {source.name}")
-            if output is None:
+            if output is None and corrupt_at is None:
                 final = source.with_name(f"{source.stem}-p001.pcap")
                 output, part = open_piece(header, final)
-            pieces.append(close_piece(output, part, final))
-            output = None
+            if output is not None:
+                pieces.append(close_piece(output, part, final))
+                output = None
     finally:
         if output is not None and not output.closed:
             output.close()
+        if converted is not None:
+            converted.unlink(missing_ok=True)
     return pieces
-
 
 def plan_batches(rows, batch_bytes):
     batches = []
@@ -434,14 +572,20 @@ def download_batch_entries(day, state, batch, by_entry, todo):
             written = extract_entry(url, compressed_size, local_offset, crc, expected, part)
             os.replace(part, output)
             print(f"      saved {written:,} bytes")
+        pcapng_source = is_pcapng(output)
         if will_split:
             pieces = split_pcap(output, SPLIT_BYTES)
             print(f"      split into {len(pieces)} piece(s)")
+        elif pcapng_source:
+            converted = output.with_name(f"{output.stem}-p001.pcap")
+            convert_pcapng_to_pcap(output, converted)
+            pieces = [converted]
+            print("      converted to classic pcap")
         else:
             pieces = [output]
         state["pieces"][entry] = [{"name": path.name, "size": path.stat().st_size} for path in pieces]
         save_state(day, state)
-        if will_split:
+        if will_split or pcapng_source:
             output.unlink()
         batch["downloading"].remove(entry)
         batch["downloaded"].append(entry)

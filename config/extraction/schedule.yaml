@@ -1,317 +1,558 @@
-schedule:
+days:
+  - date: "2018-02-14"
+    source_date_label: Wednesday-14-02-2018
+    attacks:
+      - name: FTP-BruteForce
+        rules:
+          - label: "FTP-BruteForce - Attempted"
+            start: "2018-02-14T14:33:26Z"
+            finish: "2018-02-14T16:10:31Z"
+            src_ips: ["18.221.219.4"]
+            dst_ips: ["172.31.69.25"]
+          - label: "FTP-BruteForce - Attempted"
+            start: "2018-02-14T18:01:21.199541Z"
+            finish: "2018-02-14T18:01:21.502585Z"
+            src_ips: ["13.58.98.64"]
+            dst_ips: ["172.31.69.25"]
+            dst_ports: [21]
+      - name: SSH-BruteForce
+        rules:
+          - label: "SSH-BruteForce"
+            start: "2018-02-14T18:01:50Z"
+            finish: "2018-02-14T19:32:30Z"
+            src_ips: ["13.58.98.64"]
+            dst_ips: ["172.31.69.25"]
+            dst_ports: [22]
+          - label: "SSH-BruteForce - Attempted"
+            start: "2018-02-14T18:01:50Z"
+            finish: "2018-02-14T19:32:30Z"
+            src_ips: ["13.58.98.64"]
+            dst_ips: ["172.31.69.25"]
+            dst_ports: [22]
+            payload_filter: true
 
-  - id: 1
-    attack_name: FTP-BruteForce
-    date: "2018-02-14"
-    source_date_label: Wed-14-02-2018
-    start_time: "10:32"
-    finish_time: "12:09"
-    attacker_ips: ["172.31.70.4", "18.221.219.4"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 21
-    confidence: high
-    notes: null
+  - date: "2018-02-15"
+    source_date_label: Thursday-15-02-2018
+    attacks:
+      - name: DoS-GoldenEye
+        rules:
+          - label: "DoS GoldenEye"
+            start: "2018-02-15T13:27:42Z"
+            finish: "2018-02-15T14:11:45Z"
+            src_ips: ["18.219.211.138"]
+            dst_ips: ["172.31.69.25"]
+            extra_conditions:
+              - any_of:
+                  - {feature: "RST Flag Count", op: "eq", value: 0}
+                  - {feature: "Flow Duration", op: "gte", value: 5050000}
+          - label: "DoS GoldenEye - Attempted"
+            start: "2018-02-15T13:27:42Z"
+            finish: "2018-02-15T14:11:45Z"
+            src_ips: ["18.219.211.138"]
+            dst_ips: ["172.31.69.25"]
+            extra_conditions:
+              - {feature: "RST Flag Count", op: "gt", value: 0}
+              - {feature: "Flow Duration", op: "lt", value: 5050000}
+          - label: "DoS GoldenEye - Attempted"
+            start: "2018-02-15T13:27:42Z"
+            finish: "2018-02-15T14:11:45Z"
+            src_ips: ["18.219.211.138"]
+            dst_ips: ["172.31.69.25"]
+            payload_filter: true
+      - name: DoS-Slowloris
+        rules:
+          - label: "DoS Slowloris"
+            start: "2018-02-15T15:00:12Z"
+            finish: "2018-02-15T15:42:01Z"
+            src_ips: ["18.217.165.70"]
+            dst_ips: ["172.31.69.25"]
+          - label: "DoS Slowloris - Attempted"
+            start: "2018-02-15T15:00:12Z"
+            finish: "2018-02-15T15:42:01Z"
+            src_ips: ["18.217.165.70"]
+            dst_ips: ["172.31.69.25"]
+            payload_filter: true
 
-  - id: 2
-    attack_name: SSH-Bruteforce
-    date: "2018-02-14"
-    source_date_label: Wed-14-02-2018
-    start_time: "14:01"
-    finish_time: "15:31"
-    attacker_ips: ["172.31.70.6", "13.58.98.64"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 22
-    confidence: high
-    notes: null
+  - date: "2018-02-16"
+    source_date_label: Friday-16-02-2018
+    attacks:
+      - name: FTP-BruteForce
+        rules:
+          - label: "FTP-BruteForce - Attempted"
+            start: "2018-02-16T14:12:14Z"
+            finish: "2018-02-16T15:05:13Z"
+            src_ips: ["13.59.126.31"]
+            dst_ips: ["172.31.69.25"]
+      - name: DoS-Hulk
+        rules:
+          - label: "DoS Hulk"
+            start: "2018-02-16T17:45:27Z"
+            finish: "2018-02-16T17:58:23Z"
+            src_ips: ["18.219.193.20"]
+            dst_ips: ["172.31.69.25"]
+          - label: "DoS Hulk - Attempted"
+            start: "2018-02-16T17:45:27Z"
+            finish: "2018-02-16T17:58:23Z"
+            src_ips: ["18.219.193.20"]
+            dst_ips: ["172.31.69.25"]
+            payload_filter: true
 
-  - id: 3
-    attack_name: DoS-GoldenEye
-    date: "2018-02-15"
-    source_date_label: Thurs-15-02-2018
-    start_time: "09:26"
-    finish_time: "10:09"
-    attacker_ips: ["172.31.70.46", "18.219.211.138"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: "Source table has a typo, 'Vazlid IP', for the attacker's public address; normalized to attacker_ips above (see caveat 3)."
+  - date: "2018-02-20"
+    source_date_label: Tuesday-20-02-2018
+    attacks:
+      - name: DDoS-LOIC-HTTP
+        rules:
+          - label: "DDoS-LOIC-HTTP"
+            start: "2018-02-20T14:13:54Z"
+            finish: "2018-02-20T15:16:49Z"
+            src_ips: &ddos_attackers_feb20
+              - "18.218.115.60"
+              - "18.219.9.1"
+              - "18.219.32.43"
+              - "18.218.55.126"
+              - "52.14.136.135"
+              - "18.219.5.43"
+              - "18.216.200.189"
+              - "18.218.229.235"
+              - "18.218.11.51"
+              - "18.216.24.42"
+            dst_ips: ["172.31.69.25"]
+            protocol: 6
+          - label: "DDoS-LOIC-HTTP - Attempted"
+            start: "2018-02-20T14:13:54Z"
+            finish: "2018-02-20T15:16:49Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.25"]
+            protocol: 6
+            payload_filter: true
+      - name: DDoS-LOIC-UDP
+        rules:
+          - label: "DDoS-LOIC-UDP"
+            start: "2018-02-20T17:14:17Z"
+            finish: "2018-02-20T17:29:16Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.25"]
+            protocol: 17
+          - label: "DDoS-LOIC-UDP - Attempted"
+            start: "2018-02-20T17:14:17Z"
+            finish: "2018-02-20T17:29:16Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.25"]
+            protocol: 17
+            payload_filter: true
 
-  - id: 4
-    attack_name: DoS-Slowloris
-    date: "2018-02-15"
-    source_date_label: Thurs-15-02-2018
-    start_time: "10:59"
-    finish_time: "11:40"
-    attacker_ips: ["172.31.70.8", "18.217.165.70"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
+  - date: "2018-02-21"
+    source_date_label: Wednesday-21-02-2018
+    attacks:
+      - name: DDoS-LOIC-UDP
+        rules:
+          - label: "DDoS-LOIC-UDP"
+            start: "2018-02-21T14:08:51Z"
+            finish: "2018-02-21T14:43:39Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.28"]
+            protocol: 17
+          - label: "DDoS-LOIC-UDP - Attempted"
+            start: "2018-02-21T14:08:51Z"
+            finish: "2018-02-21T14:43:39Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.28"]
+            protocol: 17
+            payload_filter: true
+      - name: DDoS-HOIC
+        rules:
+          - label: "DDoS-HOIC"
+            start: "2018-02-21T18:11:08Z"
+            finish: "2018-02-21T19:05:55Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.28"]
+            protocol: 6
+          - label: "DDoS-HOIC - Attempted"
+            start: "2018-02-21T18:11:08Z"
+            finish: "2018-02-21T19:05:55Z"
+            src_ips: *ddos_attackers_feb20
+            dst_ips: ["172.31.69.28"]
+            protocol: 6
+            payload_filter: true
 
-  - id: 5
-    attack_name: DoS-SlowHTTPTest
-    date: "2018-02-16"
-    source_date_label: Fri-16-02-2018
-    start_time: "10:12"
-    finish_time: "11:08"
-    attacker_ips: ["172.31.70.23", "13.59.126.31"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
+  - date: "2018-02-22"
+    source_date_label: Thursday-22-02-2018
+    attacks:
+      - name: Web Attack - SQL
+        rules:
+          - label: "Web Attack - SQL"
+            start: "2018-02-22T20:16:30.418906Z"
+            finish: "2018-02-22T20:27:56.022793Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Length of Fwd Packets", op: "gt", value: 0}
+              - {feature: "Total Length of Bwd Packets", op: "gt", value: 0}
+          - label: "Web Attack - SQL - Attempted"
+            start: "2018-02-22T20:14:30.169342Z"
+            finish: "2018-02-22T20:14:58.599986Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+          - label: "Web Attack - SQL - Attempted"
+            start: "2018-02-22T20:16:30.418906Z"
+            finish: "2018-02-22T20:27:56.022793Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
+      - name: Web Attack - XSS
+        rules:
+          - label: "Web Attack - XSS"
+            start: "2018-02-22T17:51:39.783923Z"
+            finish: "2018-02-22T18:29:41.827037Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Source Port", op: "not_in", value: [63782, 64144]}
+          - label: "Web Attack - XSS - Attempted"
+            start: "2018-02-22T17:51:39.783923Z"
+            finish: "2018-02-22T18:29:41.827037Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Source Port", op: "in", value: [63782, 64144]}
+          - label: "Web Attack - XSS - Attempted"
+            start: "2018-02-22T17:51:39.783923Z"
+            finish: "2018-02-22T18:29:41.827037Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
+            extra_conditions:
+              - {feature: "Source Port", op: "not_in", value: [63782, 64144]}
+      - name: Web Attack - Brute Force
+        rules:
+          - label: "Web Attack - Brute Force"
+            start: "2018-02-22T14:17:51.336902Z"
+            finish: "2018-02-22T15:23:59.858533Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Fwd Packets", op: "gt", value: 20}
+          - label: "Web Attack - Brute Force - Attempted"
+            start: "2018-02-22T14:17:51.336902Z"
+            finish: "2018-02-22T15:23:59.858533Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Fwd Packets", op: "lte", value: 20}
+              - {feature: "Total Length of Fwd Packets", op: "gt", value: 0}
+          - label: "Web Attack - Brute Force - Attempted"
+            start: "2018-02-22T14:13:44.965705Z"
+            finish: "2018-02-22T14:15:47.920399Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+          - label: "Web Attack - Brute Force - Attempted"
+            start: "2018-02-22T14:17:51.336902Z"
+            finish: "2018-02-22T15:23:59.858533Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
 
-  - id: 6
-    attack_name: DoS-Hulk
-    date: "2018-02-16"
-    source_date_label: Fri-16-02-2018
-    start_time: "13:45"
-    finish_time: "14:19"
-    attacker_ips: ["172.31.70.16", "18.219.193.20"]
-    victim_ips: ["172.31.69.25", "18.217.21.148"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
+  - date: "2018-02-23"
+    source_date_label: Friday-23-02-2018
+    attacks:
+      - name: Web Attack - SQL
+        rules:
+          - label: "Web Attack - SQL"
+            start: "2018-02-23T19:06:32.126122Z"
+            finish: "2018-02-23T19:17:24.947957Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Length of Fwd Packets", op: "gt", value: 0}
+              - {feature: "Total Length of Bwd Packets", op: "gt", value: 0}
+          - label: "Web Attack - SQL - Attempted"
+            start: "2018-02-23T19:05:22.675686Z"
+            finish: "2018-02-23T19:06:27.879296Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+          - label: "Web Attack - SQL - Attempted"
+            start: "2018-02-23T19:06:32.126122Z"
+            finish: "2018-02-23T19:17:24.947957Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
+      - name: Web Attack - XSS
+        rules:
+          - label: "Web Attack - XSS"
+            start: "2018-02-23T17:01:04.559707Z"
+            finish: "2018-02-23T18:10:28.237472Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Source Port", op: "ne", value: 59173}
+          - label: "Web Attack - XSS - Attempted"
+            start: "2018-02-23T17:01:04.559707Z"
+            finish: "2018-02-23T18:10:28.237472Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Source Port", op: "eq", value: 59173}
+          - label: "Web Attack - XSS - Attempted"
+            start: "2018-02-23T17:01:04.559707Z"
+            finish: "2018-02-23T18:10:28.237472Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
+      - name: Web Attack - Brute Force
+        rules:
+          - label: "Web Attack - Brute Force"
+            start: "2018-02-23T14:04:30.193975Z"
+            finish: "2018-02-23T15:03:06.406294Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Fwd Packets", op: "gt", value: 20}
+          - label: "Web Attack - Brute Force - Attempted"
+            start: "2018-02-23T14:04:30.193975Z"
+            finish: "2018-02-23T15:03:06.406294Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            extra_conditions:
+              - {feature: "Total Fwd Packets", op: "lte", value: 20}
+              - {feature: "Total Length of Fwd Packets", op: "gt", value: 0}
+          - label: "Web Attack - Brute Force - Attempted"
+            start: "2018-02-23T14:04:30.193975Z"
+            finish: "2018-02-23T15:03:06.406294Z"
+            src_ips: ["18.218.115.60"]
+            dst_ips: ["172.31.69.28"]
+            payload_filter: true
 
-  - id: 7
-    attack_name: DDoS-LOIC-HTTP
-    date: "2018-02-20"
-    source_date_label: Tues-20-02-2018
-    start_time: "10:12"
-    finish_time: "11:17"
-    attacker_ips: &ddos_attackers_feb20
-      - "18.218.115.60"
-      - "18.219.9.1"
-      - "18.219.32.43"
-      - "18.218.55.126"
-      - "52.14.136.135"
-      - "18.219.5.43"
-      - "18.216.200.189"
-      - "18.218.229.235"
-      - "18.218.11.51"
-      - "18.216.24.42"
-    victim_ips: ["18.217.21.148", "172.31.69.25"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: "No internal-AWS address published for any attacker IP in this row (see caveat 4)."
+  - date: "2018-02-28"
+    source_date_label: Wednesday-28-02-2018
+    attacks:
+      - name: Infiltration - Dropbox Download
+        rules:
+          - label: "Infiltration - Dropbox Download"
+            start: "2018-02-28T14:33:24Z"
+            finish: "2018-02-28T14:46:12Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: &dropbox_ips_feb28
+              - "162.125.3.1"
+              - "162.125.3.5"
+              - "162.125.3.6"
+              - "162.125.248.1"
+              - "162.125.18.133"
+          - label: "Infiltration - Dropbox Download"
+            start: "2018-02-28T17:42:51Z"
+            finish: "2018-02-28T17:43:44Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: *dropbox_ips_feb28
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-02-28T14:33:24Z"
+            finish: "2018-02-28T14:46:12Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: *dropbox_ips_feb28
+            payload_filter: true
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-02-28T17:42:51Z"
+            finish: "2018-02-28T17:43:44Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: *dropbox_ips_feb28
+            payload_filter: true
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-02-28T14:33:24Z"
+            finish: "2018-02-28T14:46:12Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: &dropbox_artifact_ips_feb28
+              - "104.16.100.29"
+              - "104.16.99.29"
+              - "52.84.128.3"
+              - "52.85.101.236"
+              - "52.85.131.81"
+              - "52.85.95.206"
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-02-28T17:42:51Z"
+            finish: "2018-02-28T17:43:44Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: *dropbox_artifact_ips_feb28
+      - name: Infiltration - Communication Victim Attacker
+        rules:
+          - label: "Infiltration - Communication Victim Attacker"
+            start: "2018-02-28T14:45:40Z"
+            finish: "2018-02-28T16:08:55Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: ["13.58.225.34"]
+          - label: "Infiltration - Communication Victim Attacker"
+            start: "2018-02-28T17:43:59Z"
+            finish: "2018-02-28T18:40:00Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: ["13.58.225.34"]
+          - label: "Infiltration - Communication Victim Attacker - Attempted"
+            start: "2018-02-28T14:45:40Z"
+            finish: "2018-02-28T16:08:55Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: ["13.58.225.34"]
+            payload_filter: true
+          - label: "Infiltration - Communication Victim Attacker - Attempted"
+            start: "2018-02-28T17:43:59Z"
+            finish: "2018-02-28T18:40:00Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips: ["13.58.225.34"]
+            payload_filter: true
+      - name: Infiltration - NMAP Portscan
+        rules:
+          - label: "Infiltration - NMAP Portscan"
+            start: "2018-02-28T14:46:22Z"
+            finish: "2018-02-28T18:39:00.746247Z"
+            src_ips: ["172.31.69.24"]
+            dst_ips:
+              - "172.31.69.1"
+              - "172.31.69.10"
+              - "172.31.69.11"
+              - "172.31.69.12"
+              - "172.31.69.13"
+              - "172.31.69.14"
+              - "172.31.69.16"
+              - "172.31.69.17"
+              - "172.31.69.19"
+              - "172.31.69.20"
+              - "172.31.69.23"
+              - "172.31.69.4"
+              - "172.31.69.5"
+              - "172.31.69.6"
+              - "172.31.69.8"
+              - "172.31.69.9"
+              - "172.31.69.7"
+              - "172.31.69.22"
+              - "172.31.69.15"
+              - "172.31.69.21"
+              - "172.31.69.18"
+            extra_conditions:
+              - {feature: "Source Port", op: "ne", value: 68}
 
-  - id: 8
-    attack_name: DDoS-LOIC-UDP
-    date: "2018-02-20"
-    source_date_label: Tues-20-02-2018
-    start_time: "13:13"
-    finish_time: "13:32"
-    attacker_ips: *ddos_attackers_feb20
-    victim_ips: ["18.217.21.148", "172.31.69.25"]
-    protocol_hint: udp
-    port_hint: null
-    confidence: medium
-    notes: "UDP flood, no fixed destination port published; do not filter on port for this entry."
-
-  - id: 9
-    attack_name: DDoS-LOIC-UDP
-    date: "2018-02-21"
-    source_date_label: Wed-21-02-2018
-    start_time: "10:09"
-    finish_time: "10:43"
-    attacker_ips: *ddos_attackers_feb20
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: udp
-    port_hint: null
-    confidence: medium
-    notes: "UDP flood, no fixed destination port published; do not filter on port for this entry."
-
-  - id: 10
-    attack_name: DDoS-HOIC
-    date: "2018-02-21"
-    source_date_label: Wed-21-02-2018
-    start_time: "14:05"
-    finish_time: "15:05"
-    attacker_ips: *ddos_attackers_feb20
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: medium
-    notes: "HOIC can target multiple URLs/ports simultaneously; port 80 is the likely primary target but not guaranteed exclusive."
-
-  - id: 11
-    attack_name: Brute Force-Web
-    date: "2018-02-22"
-    source_date_label: Thurs-22-02-2018
-    start_time: "10:17"
-    finish_time: "11:24"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: "No internal-AWS address published for the attacker IP (see caveat 4)."
-
-  - id: 12
-    attack_name: Brute Force-XSS
-    date: "2018-02-22"
-    source_date_label: Thurs-22-02-2018
-    start_time: "13:50"
-    finish_time: "14:29"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
-
-  - id: 13
-    attack_name: SQL Injection
-    date: "2018-02-22"
-    source_date_label: Thurs-22-02-2018
-    start_time: "16:15"
-    finish_time: "16:29"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
-
-  - id: 14
-    attack_name: Brute Force-Web
-    date: "2018-02-23"
-    source_date_label: Fri-23-02-2018
-    start_time: "10:03"
-    finish_time: "11:03"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
-
-  - id: 15
-    attack_name: Brute Force-XSS
-    date: "2018-02-23"
-    source_date_label: Fri-23-02-2018
-    start_time: "13:00"
-    finish_time: "14:10"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
-
-  - id: 16
-    attack_name: SQL Injection
-    date: "2018-02-23"
-    source_date_label: Fri-23-02-2018
-    start_time: "15:05"
-    finish_time: "15:18"
-    attacker_ips: ["18.218.115.60"]
-    victim_ips: ["18.218.83.150", "172.31.69.28"]
-    protocol_hint: tcp
-    port_hint: 80
-    confidence: high
-    notes: null
-
-  - id: 17
-    attack_name: Infiltration
-    date: "2018-02-28"
-    source_date_label: Wed-28-02-2018
-    start_time: "10:50"
-    finish_time: "12:05"
-    attacker_ips: ["13.58.225.34"]
-    victim_ips: ["18.221.148.137", "172.31.69.24"]
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "Two-stage attack (file-based exploit, then internal port/network scan). Match on attacker/victim IP + time only."
-
-  - id: 18
-    attack_name: Infiltration
-    date: "2018-02-28"
-    source_date_label: Wed-28-02-2018
-    start_time: "13:42"
-    finish_time: "14:40"
-    attacker_ips: ["13.58.225.34"]
-    victim_ips: ["18.221.148.137", "172.31.69.24"]
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "Same caveats as id 17."
-
-  - id: 19
-    attack_name: Infiltration
-    date: "2018-03-01"
+  - date: "2018-03-01"
     source_date_label: Thursday-01-03-2018
-    start_time: "09:57"
-    finish_time: "10:55"
-    attacker_ips: ["13.58.225.34"]
-    victim_ips: ["18.216.254.154", "172.31.69.13"]
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "Same caveats as id 17."
+    attacks:
+      - name: Infiltration - Dropbox Download
+        rules:
+          - label: "Infiltration - Dropbox Download"
+            start: "2018-03-01T13:53:10Z"
+            finish: "2018-03-01T13:59:20Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: &dropbox_ips_mar01
+              - "162.125.3.1"
+              - "162.125.3.6"
+              - "162.125.248.1"
+              - "162.125.18.133"
+          - label: "Infiltration - Dropbox Download"
+            start: "2018-03-01T14:03:52Z"
+            finish: "2018-03-01T15:34:14Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: *dropbox_ips_mar01
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-03-01T13:53:10Z"
+            finish: "2018-03-01T13:59:20Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: *dropbox_ips_mar01
+            payload_filter: true
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-03-01T14:03:52Z"
+            finish: "2018-03-01T15:34:14Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: *dropbox_ips_mar01
+            payload_filter: true
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-03-01T13:53:10Z"
+            finish: "2018-03-01T13:59:20Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: &dropbox_artifact_ips_mar01
+              - "104.16.100.29"
+              - "13.32.168.125"
+              - "52.85.112.72"
+          - label: "Infiltration - Dropbox Download - Attempted"
+            start: "2018-03-01T14:03:52Z"
+            finish: "2018-03-01T15:34:14Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: *dropbox_artifact_ips_mar01
+      - name: Infiltration - Communication Victim Attacker
+        rules:
+          - label: "Infiltration - Communication Victim Attacker"
+            start: "2018-03-01T13:57:54Z"
+            finish: "2018-03-01T13:59:05Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+          - label: "Infiltration - Communication Victim Attacker"
+            start: "2018-03-01T14:04:35Z"
+            finish: "2018-03-01T18:17:25Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+          - label: "Infiltration - Communication Victim Attacker"
+            start: "2018-03-01T18:18:15Z"
+            finish: "2018-03-01T19:37:21Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+          - label: "Infiltration - Communication Victim Attacker - Attempted"
+            start: "2018-03-01T13:57:54Z"
+            finish: "2018-03-01T13:59:05Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+            payload_filter: true
+          - label: "Infiltration - Communication Victim Attacker - Attempted"
+            start: "2018-03-01T14:04:35Z"
+            finish: "2018-03-01T18:17:25Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+            payload_filter: true
+          - label: "Infiltration - Communication Victim Attacker - Attempted"
+            start: "2018-03-01T18:18:15Z"
+            finish: "2018-03-01T19:37:21Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips: ["13.58.225.34"]
+            payload_filter: true
+      - name: Infiltration - NMAP Portscan
+        rules:
+          - label: "Infiltration - NMAP Portscan"
+            start: "2018-03-01T14:09:48.354333Z"
+            finish: "2018-03-01T19:38:12.182726Z"
+            src_ips: ["172.31.69.13"]
+            dst_ips:
+              - "172.31.69.1"
+              - "172.31.69.11"
+              - "172.31.69.12"
+              - "172.31.69.16"
+              - "172.31.69.8"
+              - "172.31.69.9"
+              - "172.31.69.10"
+              - "172.31.69.14"
+              - "172.31.69.4"
+              - "172.31.69.5"
+              - "172.31.69.6"
+              - "172.31.69.17"
+              - "172.31.69.20"
+              - "172.31.69.23"
+              - "172.31.69.24"
+              - "172.31.69.19"
+              - "172.31.69.7"
+              - "172.31.69.15"
+              - "172.31.69.18"
+              - "172.31.69.22"
+              - "172.31.69.21"
+            extra_conditions:
+              - {feature: "Source Port", op: "ne", value: 68}
 
-  - id: 20
-    attack_name: Infiltration
-    date: "2018-03-01"
-    source_date_label: Thursday-01-03-2018
-    start_time: "14:00"
-    finish_time: "15:37"
-    attacker_ips: ["13.58.225.34"]
-    victim_ips: ["18.216.254.154", "172.31.69.13"]
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "Source table lists this exact row twice (identical attacker/victim/time); duplicate collapsed to this single entry (see caveat 2)."
-
-  - id: 21
-    attack_name: Bot
-    date: "2018-03-02"
+  - date: "2018-03-02"
     source_date_label: Friday-02-03-2018
-    start_time: "10:11"
-    finish_time: "11:34"
-    attacker_ips: ["18.219.211.138"]
-    victim_ips: &bot_victims_mar02
-      - "18.217.218.111"
-      - "172.31.69.23"
-      - "18.222.10.237"
-      - "172.31.69.17"
-      - "18.222.86.193"
-      - "172.31.69.14"
-      - "18.222.62.221"
-      - "172.31.69.12"
-      - "13.59.9.106"
-      - "172.31.69.10"
-      - "18.222.102.2"
-      - "172.31.69.8"
-      - "18.219.212.0"
-      - "172.31.69.6"
-      - "18.216.105.13"
-      - "172.31.69.26"
-      - "18.219.163.126"
-      - "172.31.69.29"
-      - "18.216.164.12"
-      - "172.31.69.30"
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "C2/remote-shell/file-transfer/screenshot/keylog traffic over arbitrary ports. Match on IP + time only."
-
-  - id: 22
-    attack_name: Bot
-    date: "2018-03-02"
-    source_date_label: Friday-02-03-2018
-    start_time: "14:24"
-    finish_time: "15:55"
-    attacker_ips: ["18.219.211.138"]
-    victim_ips: *bot_victims_mar02
-    protocol_hint: null
-    port_hint: null
-    confidence: low
-    notes: "Same caveats as id 21."
+    attacks:
+      - name: Botnet Ares
+        rules:
+          - label: "Botnet Ares"
+            start: "2018-03-02T14:13:28Z"
+            finish: "2018-03-02T19:54:52Z"
+            extra_conditions:
+              - any_of:
+                  - {feature: "Source IP", op: "eq", value: "18.219.211.138"}
+                  - {feature: "Destination IP", op: "eq", value: "18.219.211.138"}
+          - label: "Botnet Ares - Attempted"
+            start: "2018-03-02T14:13:28Z"
+            finish: "2018-03-02T19:54:52Z"
+            extra_conditions:
+              - any_of:
+                  - {feature: "Source IP", op: "eq", value: "18.219.211.138"}
+                  - {feature: "Destination IP", op: "eq", value: "18.219.211.138"}
+              - {feature: "Total Length of Fwd Packets", op: "eq", value: 0}
+              - {feature: "Total Length of Bwd Packets", op: "eq", value: 0}
