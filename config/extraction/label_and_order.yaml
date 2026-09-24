@@ -15,7 +15,7 @@ valid_protocols:
 
 timestamp_format: !!str '%Y-%m-%d %H:%M:%S.%f'
 
-default_label: !!str 'BENIGN'
+default_label: !!str 'Benign'
 
 artifact_flow_ids:
   - !!str '8.0.6.4-8.6.0.1-0-0-0'

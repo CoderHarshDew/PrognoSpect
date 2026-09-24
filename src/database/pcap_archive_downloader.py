@@ -10,6 +10,7 @@ import zlib
 from pathlib import Path
 
 from src.database.pcap_downloader import BUCKET, REGION, fetch_central_directory, find_entry
+from src.core.logger import logger
 
 BASE_DIR = Path("dataset/pcap")
 LISTS_DIR = BASE_DIR / "lists"
@@ -19,6 +20,8 @@ LIMIT = 5
 CHUNK_SIZE = 256 * 1024
 RETRIES = 5
 PROGRESS_INTERVAL = 1.0
+LOG_PROGRESS_INTERVAL = 60.0
+LOG_CLOCK_CHECK_PACKETS = 100_000
 CURL_LIMITS = ["--connect-timeout", "30", "--speed-limit", "1024", "--speed-time", "60"]
 BATCH_BYTES = 20 * 10**9
 SPLIT_BYTES = 10**9
@@ -71,7 +74,9 @@ def load_rows(day):
     else:
         rows = [row for row in read_csv(ALL_LIST) if row["day"] == day]
     if not rows:
+        logger.error("No PCAPs listed for %s in %s or %s.", day, per_day, ALL_LIST)
         raise ValueError(f"No PCAPs listed for {day}")
+    logger.info("Loaded %d listed PCAP(s) for %s.", len(rows), day)
     return rows
 
 
@@ -82,6 +87,7 @@ def new_state():
 def load_state(day):
     path = state_path(day)
     if not path.exists():
+        logger.info("No saved state for %s at %s; starting with a new state.", day, path)
         return new_state()
     return json.loads(path.read_text(encoding="utf-8"))
 
@@ -103,6 +109,7 @@ def entry_crc(central, entry_name):
     offset = 0
     while offset < len(central):
         if central[offset:offset + 4] != b"PK\x01\x02":
+            logger.error("Invalid central-directory entry at offset %d while looking for %s.", offset, entry_name)
             raise ValueError(f"Invalid central-directory entry at offset {offset}")
         crc = struct.unpack_from("<I", central, offset + 16)[0]
         name_length, extra_length, comment_length = struct.unpack_from("<HHH", central, offset + 28)
@@ -110,6 +117,7 @@ def entry_crc(central, entry_name):
         if name == entry_name:
             return crc
         offset += 46 + name_length + extra_length + comment_length
+    logger.error("Entry not found in central directory: %s", entry_name)
     raise ValueError(f"Entry not found: {entry_name}")
 
 
@@ -149,7 +157,9 @@ def stream_range(url, start, end):
         problem = problem or "stream ended early"
         failures = failures + 1 if position == before else 1
         if failures > RETRIES:
+            logger.error("Giving up on bytes %d-%d of %s after %d retries: %s", start, end, url, RETRIES, problem)
             raise RuntimeError(problem)
+        logger.warning("Connection problem (%s); retry %d/%d from byte %d of range %d-%d.", problem, failures, RETRIES, position, start, end)
         print(f"\n  connection problem ({problem}); retry {failures}/{RETRIES} from byte {position:,}")
         time.sleep(min(5 * failures, 30))
 
@@ -160,8 +170,10 @@ def show_progress(received, total, seconds):
 
 
 def extract_entry(url, compressed_size, local_offset, expected_crc, expected_size, output):
+    logger.info("Extracting to %s | Compressed: %d bytes | Expected: %d bytes", output, compressed_size, expected_size)
     header = b"".join(stream_range(url, local_offset, local_offset + 29))
     if header[:4] != b"PK\x03\x04":
+        logger.error("Invalid local ZIP header at offset %d for %s (first bytes: %s).", local_offset, output, header[:4].hex())
         raise ValueError("Invalid local ZIP header")
     filename_length, extra_length = struct.unpack_from("<HH", header, 26)
     data_start = local_offset + 30 + filename_length + extra_length
@@ -171,6 +183,7 @@ def extract_entry(url, compressed_size, local_offset, expected_crc, expected_siz
     written = 0
     started = time.monotonic()
     last_shown = started
+    last_logged = started
     with open(output, "wb") as handle:
         for chunk in stream_range(url, data_start, data_start + compressed_size - 1):
             received += len(chunk)
@@ -182,6 +195,9 @@ def extract_entry(url, compressed_size, local_offset, expected_crc, expected_siz
             if now - last_shown >= PROGRESS_INTERVAL:
                 last_shown = now
                 show_progress(received, compressed_size, now - started)
+                if now - last_logged >= LOG_PROGRESS_INTERVAL:
+                    last_logged = now
+                    logger.info("Download progress: %s | %.1f%% of %.1f MB compressed | %.2f MB/s", output.name, received / compressed_size * 100, compressed_size / 1e6, received / (now - started) / 1e6)
         data = decompressor.flush()
         crc = zlib.crc32(data, crc)
         written += len(data)
@@ -189,19 +205,25 @@ def extract_entry(url, compressed_size, local_offset, expected_crc, expected_siz
     show_progress(received, compressed_size, time.monotonic() - started)
     print()
     if received != compressed_size or not decompressor.eof:
+        logger.error("Incomplete download of %s: received %d of %d compressed bytes.", output, received, compressed_size)
         raise ValueError(f"Incomplete download: received {received:,} of {compressed_size:,} compressed bytes")
     if written != expected_size:
+        logger.error("Size mismatch for %s: wrote %d bytes, expected %d.", output, written, expected_size)
         raise ValueError(f"Size mismatch: wrote {written:,}, expected {expected_size:,}")
     if crc != expected_crc:
+        logger.error("CRC32 mismatch for %s: got %08x, expected %08x.", output, crc, expected_crc)
         raise ValueError(f"CRC32 mismatch: got {crc:08x}, expected {expected_crc:08x}")
+    logger.info("Extracted %s | Bytes: %d | Elapsed: %.1f s", output, written, time.monotonic() - started)
     return written
 
 
 def reconcile(day, rows, state, limit):
     pcap_dir(day).mkdir(parents=True, exist_ok=True)
     for part in pcap_dir(day).glob("*.part"):
+        logger.debug("Removing stale partial file: %s", part)
         part.unlink()
     for entry in state["downloading"]:
+        logger.info("Discarding interrupted download: %s", entry)
         (pcap_dir(day) / output_name(day, entry)).unlink(missing_ok=True)
     by_entry = {row["entry"]: row for row in rows}
     downloaded = [entry for entry in state["downloaded"] if entry in by_entry and is_complete(day, by_entry[entry])]
@@ -210,6 +232,7 @@ def reconcile(day, rows, state, limit):
     state["downloading"] = []
     state["to_download"] = [entry for entry in wanted if entry not in downloaded]
     save_state(day, state)
+    logger.info("Reconciled %s | Downloaded: %d | To download: %d", day, len(downloaded), len(state["to_download"]))
 
 
 def download_entries(day, rows, state):
@@ -218,6 +241,7 @@ def download_entries(day, rows, state):
     url = archive_url(key)
     total = len(state["downloaded"]) + len(state["to_download"])
     size, entries, central = fetch_central_directory(key)
+    logger.info("Fetched central directory for %s | Central directory: %d bytes", key, len(central))
     for entry in list(state["to_download"]):
         output = pcap_dir(day) / output_name(day, entry)
         part = output.with_name(output.name + ".part")
@@ -225,6 +249,7 @@ def download_entries(day, rows, state):
         state["downloading"].append(entry)
         save_state(day, state)
         print(f"  [{len(state['downloaded']) + 1}/{total}] {entry} -> {output.name}")
+        logger.info("Downloading [%d/%d]: %s -> %s", len(state["downloaded"]) + 1, total, entry, output.name)
         name, compressed_size, local_offset = find_entry(central, entry)
         crc = entry_crc(central, entry)
         expected = int(by_entry[entry]["uncompressed_size"])
@@ -234,26 +259,32 @@ def download_entries(day, rows, state):
         state["downloaded"].append(entry)
         save_state(day, state)
         print(f"      saved {written:,} bytes")
+        logger.info("Saved %s | Bytes: %d | Downloaded: %d/%d", output.name, written, len(state["downloaded"]), total)
 
 
 def download(day, limit=LIMIT):
     state = load_state(day)
     if state["deleted"]:
+        logger.info("Skipping download for %s: data already deleted.", day)
         return None
     rows = load_rows(day)
+    logger.info("Starting download for %s | Limit: %s", day, limit)
     reconcile(day, rows, state, limit)
     print(f"  {len(state['downloaded'])} downloaded, {len(state['to_download'])} to download")
     if state["to_download"]:
         download_entries(day, rows, state)
+    logger.info("Finished download for %s | Files: %d", day, len(state["downloaded"]))
     return [pcap_dir(day) / output_name(day, entry) for entry in state["downloaded"]]
 
 
 def delete(day):
+    logger.info("Deleting data for %s.", day)
     state = load_state(day)
     state["deleted"] = True
     save_state(day, state)
     if pcap_dir(day).exists():
         shutil.rmtree(pcap_dir(day))
+        logger.info("Removed directory %s.", pcap_dir(day))
 
 
 def ensure_free_space(path, needed, reserve=None):
@@ -263,7 +294,9 @@ def ensure_free_space(path, needed, reserve=None):
     free = shutil.disk_usage(path).free
     required = needed + reserve
     if free < required:
+        logger.error("Not enough disk space at %s | Required: %.1f GB | Free: %.1f GB", path.resolve(), required / 1e9, free / 1e9)
         raise RuntimeError(f"Not enough disk space at {path.resolve()}: need {required / 1e9:,.1f} GB free ({needed / 1e9:,.1f} GB for the next step plus a {reserve / 1e9:,.1f} GB reserve) but only {free / 1e9:,.1f} GB is available. Free some space (for example move finished CSVs to another drive) and run the same command again.")
+    logger.debug("Disk space OK at %s | Required: %.1f GB | Free: %.1f GB", path, required / 1e9, free / 1e9)
 
 
 def piece_files(day, entry):
@@ -278,12 +311,14 @@ def open_piece(header, final):
     part = final.with_name(final.name + ".part")
     handle = open(part, "wb")
     handle.write(header)
+    logger.debug("Opened piece %s.", final.name)
     return handle, part
 
 
 def close_piece(handle, part, final):
     handle.close()
     os.replace(part, final)
+    logger.info("Closed piece %s | Size: %d bytes", final.name, final.stat().st_size)
     return final
 
 
@@ -292,6 +327,7 @@ def pcapng_endian(bom_bytes):
         return "<"
     if struct.unpack(">I", bom_bytes)[0] == PCAPNG_BOM:
         return ">"
+    logger.error("Invalid pcapng byte-order magic: %s", bom_bytes.hex())
     raise ValueError("Invalid pcapng byte-order magic")
 
 
@@ -300,26 +336,32 @@ def read_pcapng_block(handle, endian):
     if not head:
         return None, b"", endian
     if len(head) < 8:
+        logger.error("Truncated pcapng block header in %s at byte %d.", handle.name, handle.tell())
         raise ValueError("Truncated pcapng block header")
     if endian is None:
         if head[:4] != PCAPNG_SHB_MAGIC:
+            logger.error("Expected a pcapng section header block in %s but found %s.", handle.name, head[:4].hex())
             raise ValueError("Expected a pcapng section header block")
         bom = handle.read(4)
         if len(bom) < 4:
+            logger.error("Truncated pcapng section header block in %s: byte-order magic incomplete.", handle.name)
             raise ValueError("Truncated pcapng section header block")
         endian = pcapng_endian(bom)
         length = struct.unpack(endian + "I", head[4:8])[0]
         rest = handle.read(length - 12)
         if len(rest) < length - 12:
+            logger.error("Truncated pcapng section header block in %s: block length %d, read %d bytes.", handle.name, length, 12 + len(rest))
             raise ValueError("Truncated pcapng section header block")
         block_type = struct.unpack(endian + "I", head[:4])[0]
         return block_type, head + bom + rest, endian
     block_type = struct.unpack(endian + "I", head[:4])[0]
     length = struct.unpack(endian + "I", head[4:8])[0]
     if length < 12:
+        logger.error("Corrupt pcapng block length %d in %s at byte %d.", length, handle.name, handle.tell())
         raise ValueError("Corrupt pcapng block length")
     rest = handle.read(length - 8)
     if len(rest) < length - 8:
+        logger.error("Truncated pcapng block in %s: block length %d, read %d bytes.", handle.name, length, 8 + len(rest))
         raise ValueError("Truncated pcapng block")
     return block_type, head + rest, endian
 
@@ -357,10 +399,15 @@ def convert_pcapng_to_pcap(source, dest):
     linktype, snaplen, tsresol = 1, 262144, 1e-6
     wrote_header = False
     packets = 0
+    source_size = source.stat().st_size
+    started = time.monotonic()
+    last_logged = started
+    logger.info("Converting pcapng to classic pcap: %s -> %s | Size: %d bytes", source, dest, source_size)
     try:
         with open(source, "rb") as handle, open(part, "wb") as out:
             block_type, raw, endian = read_pcapng_block(handle, None)
             if block_type != PCAPNG_SHB_TYPE:
+                logger.error("Unsupported capture format in %s; expected a pcapng section header block.", source.name)
                 raise ValueError(f"Unsupported capture format in {source.name}; expected a pcapng section header block")
             while True:
                 block_type, raw, endian = read_pcapng_block(handle, endian)
@@ -394,9 +441,14 @@ def convert_pcapng_to_pcap(source, dest):
                 out.write(struct.pack("<IIII", ts_sec, ts_usec, len(data), orig_len))
                 out.write(data)
                 packets += 1
+                if packets % LOG_CLOCK_CHECK_PACKETS == 0 and time.monotonic() - last_logged >= LOG_PROGRESS_INTERVAL:
+                    last_logged = time.monotonic()
+                    logger.info("Conversion progress: %s | Packets: %d | %.1f%% of source read", source.name, packets, handle.tell() / source_size * 100)
             if not wrote_header:
+                logger.warning("No packets found in %s; writing an empty classic pcap.", source.name)
                 out.write(struct.pack("<IHHiIII", 0xA1B2C3D4, 2, 4, 0, 0, snaplen, linktype))
         os.replace(part, dest)
+        logger.info("Converted %s | Packets: %d | Elapsed: %.1f s", dest.name, packets, time.monotonic() - started)
     finally:
         part.unlink(missing_ok=True)
     return packets
@@ -404,6 +456,7 @@ def convert_pcapng_to_pcap(source, dest):
 
 def split_pcap(source, max_bytes):
     source = Path(source)
+    logger.info("Splitting %s | Max piece size: %d bytes", source, max_bytes)
     with open(source, "rb") as probe:
         magic = probe.read(4)
     read_source = source
@@ -426,6 +479,7 @@ def split_pcap(source, max_bytes):
         with open(read_source, "rb") as handle:
             header = handle.read(GLOBAL_HEADER_SIZE)
             if len(header) < GLOBAL_HEADER_SIZE or header[:4] not in PCAP_MAGICS:
+                logger.error("Unsupported capture format in %s (first bytes: %s).", source.name, header[:4].hex() or "none")
                 raise ValueError(f"Unsupported capture format (first bytes: {header[:4].hex() or 'none'}) in {source.name}; only classic pcap and pcapng files can be split")
             endian = PCAP_MAGICS[header[:4]]
             while True:
@@ -456,12 +510,14 @@ def split_pcap(source, max_bytes):
                 position = 0
                 pending = 0
                 if corrupt_at is not None:
+                    logger.warning("Corrupt record header at byte %d of %s; truncating here, rest of file dropped.", corrupt_at, source.name)
                     print(f"      warning: corrupt record header at byte {corrupt_at:,} of {source.name}; truncating here, rest of file dropped")
                     buffer = bytearray()
                     break
                 if not chunk:
                     break
             if buffer:
+                logger.warning("Dropped %d trailing bytes of an incomplete record in %s.", len(buffer), source.name)
                 print(f"      warning: dropped {len(buffer):,} trailing bytes of an incomplete record in {source.name}")
             if output is None and corrupt_at is None:
                 final = source.with_name(f"{source.stem}-p001.pcap")
@@ -474,6 +530,7 @@ def split_pcap(source, max_bytes):
             output.close()
         if converted is not None:
             converted.unlink(missing_ok=True)
+    logger.info("Split %s into %d piece(s).", source.name, len(pieces))
     return pieces
 
 def plan_batches(rows, batch_bytes):
@@ -496,6 +553,7 @@ def plan_batches(rows, batch_bytes):
 def plan(day, limit=None):
     state = load_state(day)
     if state["deleted"]:
+        logger.info("Skipping planning for %s: data already deleted.", day)
         return 0
     if "batches" not in state:
         rows = load_rows(day)[:limit]
@@ -503,6 +561,7 @@ def plan(day, limit=None):
         state["pieces"] = {}
         save_state(day, state)
         print(f"  planned {len(state['batches'])} batch(es) for {day}")
+        logger.info("Planned %d batch(es) for %s | PCAPs: %d | Batch size: %d bytes", len(state["batches"]), day, len(rows), BATCH_BYTES)
     return len(state["batches"])
 
 
@@ -518,6 +577,7 @@ def pieces_complete(day, state, entry):
 
 
 def remove_entry_files(day, entry, keep_original=False):
+    logger.debug("Removing files for %s (keep original: %s).", entry, keep_original)
     output = pcap_dir(day) / output_name(day, entry)
     if not keep_original:
         output.unlink(missing_ok=True)
@@ -529,24 +589,29 @@ def remove_entry_files(day, entry, keep_original=False):
 def reconcile_batch(day, state, batch, by_entry):
     pcap_dir(day).mkdir(parents=True, exist_ok=True)
     for part in pcap_dir(day).glob("*.part"):
+        logger.debug("Removing stale partial file: %s", part)
         part.unlink()
     for entry in batch["downloading"]:
         if pieces_complete(day, state, entry):
+            logger.info("Recovered interrupted entry with complete pieces: %s", entry)
             original = pcap_dir(day) / output_name(day, entry)
             if original.name not in [piece["name"] for piece in state["pieces"][entry]]:
                 original.unlink(missing_ok=True)
             batch["downloaded"].append(entry)
         else:
+            logger.info("Discarding incomplete interrupted entry; it will be redone: %s", entry)
             remove_entry_files(day, entry, keep_original=is_complete(day, by_entry[entry]))
     kept = []
     for entry in batch["downloaded"]:
         if pieces_complete(day, state, entry):
             kept.append(entry)
         else:
+            logger.warning("Downloaded entry has missing or mismatched pieces; it will be downloaded again: %s", entry)
             remove_entry_files(day, entry)
     batch["downloaded"] = kept
     batch["downloading"] = []
     save_state(day, state)
+    logger.info("Reconciled batch for %s | Kept: %d | To download: %d", day, len(kept), len(batch["entries"]) - len(kept))
     return [entry for entry in batch["entries"] if entry not in kept]
 
 
@@ -554,6 +619,7 @@ def download_batch_entries(day, state, batch, by_entry, todo):
     key = by_entry[todo[0]]["archive"]
     url = archive_url(key)
     size, entries, central = fetch_central_directory(key)
+    logger.info("Fetched central directory for %s | Central directory: %d bytes", key, len(central))
     total = len(batch["entries"])
     for entry in todo:
         row = by_entry[entry]
@@ -566,6 +632,7 @@ def download_batch_entries(day, state, batch, by_entry, todo):
         batch["downloading"].append(entry)
         save_state(day, state)
         print(f"  [{len(batch['downloaded']) + 1}/{total}] {entry} -> {output.name}")
+        logger.info("Downloading [%d/%d]: %s -> %s | Expected: %d bytes | Original on disk: %s | Split: %s", len(batch["downloaded"]) + 1, total, entry, output.name, expected, have_original, will_split)
         if not have_original:
             name, compressed_size, local_offset = find_entry(central, entry)
             crc = entry_crc(central, entry)
@@ -590,28 +657,35 @@ def download_batch_entries(day, state, batch, by_entry, todo):
         batch["downloading"].remove(entry)
         batch["downloaded"].append(entry)
         save_state(day, state)
+        logger.info("Completed %s | Pieces: %d | Downloaded: %d/%d", entry, len(pieces), len(batch["downloaded"]), total)
 
 
 def download_batch(day, index):
     state = load_state(day)
     if state["deleted"]:
+        logger.info("Skipping batch %d for %s: data already deleted.", index + 1, day)
         return None
     if "batches" not in state:
+        logger.error("No batch plan for %s; call plan(day) first.", day)
         raise ValueError(f"No batch plan for {day}; call plan(day) first")
     batch = state["batches"][index]
     if batch["deleted"]:
+        logger.info("Skipping batch %d/%d for %s: batch already deleted.", index + 1, len(state["batches"]), day)
         return None
     by_entry = {row["entry"]: row for row in load_rows(day)}
     todo = reconcile_batch(day, state, batch, by_entry)
     print(f"  batch {index + 1}/{len(state['batches'])}: {len(batch['downloaded'])} downloaded, {len(todo)} to download")
+    logger.info("Batch %d/%d for %s | Downloaded: %d | To download: %d", index + 1, len(state["batches"]), day, len(batch["downloaded"]), len(todo))
     if todo:
         download_batch_entries(day, state, batch, by_entry, todo)
+    logger.info("Batch %d/%d for %s ready | PCAPs: %d", index + 1, len(state["batches"]), day, len(batch["entries"]))
     return [[pcap_dir(day) / piece["name"] for piece in state["pieces"][entry]] for entry in batch["entries"]]
 
 
 def delete_batch(day, index):
     state = load_state(day)
     batch = state["batches"][index]
+    logger.info("Deleting batch %d/%d for %s | PCAPs: %d", index + 1, len(state["batches"]), day, len(batch["entries"]))
     batch["deleted"] = True
     if all(item["deleted"] for item in state["batches"]):
         state["deleted"] = True
@@ -620,3 +694,4 @@ def delete_batch(day, index):
         remove_entry_files(day, entry)
     if state["deleted"] and pcap_dir(day).exists():
         shutil.rmtree(pcap_dir(day))
+        logger.info("All batches deleted for %s; removed directory %s.", day, pcap_dir(day))

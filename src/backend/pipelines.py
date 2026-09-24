@@ -68,7 +68,7 @@ def load_cleaning_configurations():
         pipeline_cfg = config_loader(PIPELINE_CFG_PATH)
 
     except Exception:
-        logger.exception("Failed to load preprocessing configurations.")
+        logger.error("Failed to load preprocessing configurations.")
         raise
 
     logger.info("Preprocessing configurations loaded successfully.")
@@ -177,7 +177,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 try:
                     chunk = initial_cleanup(chunk, cleaning_cfg, schema_cfg)
                 except Exception:
-                    logger.exception("Initial cleanup failed for chunk %d of %s.", chunk_number, file)
+                    logger.error("Initial cleanup failed for chunk %d of %s.", chunk_number, file)
                     raise
 
                 logger.debug("Initial cleanup completed for chunk %d of %s. Rows remaining: %d | Columns: %d", chunk_number, file, len(chunk), len(chunk.columns))
@@ -200,7 +200,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 try:
                     chunk = chunk.astype(dtype_map)
                 except Exception:
-                    logger.exception("Dtype conversion failed for chunk %d of %s.", chunk_number, file)
+                    logger.error("Dtype conversion failed for chunk %d of %s.", chunk_number, file)
                     raise
 
                 logger.debug("Dtype conversion completed for chunk %d of %s.", chunk_number, file)
@@ -216,7 +216,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                     try:
                         preprocess.validate(chunk)
                     except Exception:
-                        logger.exception("Validation failed during cycle %d/%d for chunk %d of %s.", cycle, cycles, chunk_number, file)
+                        logger.error("Validation failed during cycle %d/%d for chunk %d of %s.", cycle, cycles, chunk_number, file)
                         raise
 
                     logger.debug("Validation cycle %d/%d completed for chunk %d of %s.", cycle, cycles, chunk_number, file)
@@ -226,7 +226,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                     try:
                         chunk = preprocess.clean(chunk)
                     except Exception:
-                        logger.exception("Cleaning failed during cycle %d/%d for chunk %d of %s.", cycle, cycles, chunk_number, file)
+                        logger.error("Cleaning failed during cycle %d/%d for chunk %d of %s.", cycle, cycles, chunk_number, file)
                         raise
 
                     rows_after_cleaning = len(chunk)
@@ -247,12 +247,12 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                         logger.debug("Validation report generated: %s", report_file)
 
                 except Exception:
-                    logger.exception("Failed to generate validation report for chunk %d of %s.", chunk_number, file)
+                    logger.error("Failed to generate validation report for chunk %d of %s.", chunk_number, file)
 
                 try:
                     table = pa.Table.from_pandas(df=chunk, preserve_index=False)
                 except Exception:
-                    logger.exception("Failed to convert chunk %d of %s to PyArrow table.", chunk_number, file)
+                    logger.error("Failed to convert chunk %d of %s to PyArrow table.", chunk_number, file)
                     raise
 
                 logger.debug("Converted chunk %d of %s to PyArrow table.", chunk_number, file)
@@ -268,7 +268,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 try:
                     writer.write_table(table)
                 except Exception:
-                    logger.exception("Failed to write chunk %d of %s to Parquet. Rows: %d", chunk_number, file, len(chunk))
+                    logger.error("Failed to write chunk %d of %s to Parquet. Rows: %d", chunk_number, file, len(chunk))
                     logger.error("Incoming table schema: %s", table.schema)
                     raise
 
@@ -279,7 +279,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
         logger.info("Dataset cleaning pipeline completed successfully. Files: %d | Chunks: %d | Rows read: %d | Output: %s", len(raw_dataset_files), total_chunks, total_rows, output_path)
 
     except Exception:
-        logger.exception("Dataset cleaning pipeline failed.")
+        logger.error("Dataset cleaning pipeline failed.")
         raise
 
     finally:
@@ -288,7 +288,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 writer.close()
                 logger.info("Parquet writer closed successfully.")
             except Exception:
-                logger.exception("Failed to close Parquet writer.")
+                logger.error("Failed to close Parquet writer.")
                 raise
 
 
@@ -478,7 +478,7 @@ def merge_pipeline(flow_path: str | Path, packet_path: str | Path, cross_flow_pa
             merged_row_count = write_csv_in_chunks(output_path, merged_fieldnames, merged_rows(), EXTRACTION_CHUNK_SIZE, append)
 
     except Exception:
-        logger.exception("Merge pipeline failed.")
+        logger.error("Merge pipeline failed.")
         raise
 
     logger.info("Merge pipeline completed successfully. Rows: %d | Columns: %d | Output: %s", merged_row_count, len(merged_fieldnames), output_path)
@@ -491,7 +491,7 @@ def _load_extraction_settings():
         flow_cfg = config_loader(FLOW_EXTRACTION_CFG_PATH)
         joiner_cfg = config_loader(FLOW_PACKET_JOINER_CFG_PATH)
     except Exception:
-        logger.exception("Failed to load extraction configurations.")
+        logger.error("Failed to load extraction configurations.")
         raise
 
     cicflowmeter_cfg = flow_cfg['cicflowmeter']
@@ -542,7 +542,7 @@ def _extract_day(day: str, pcap_files: list, extracted_path: Path, merged_output
             logger.info("Cross-flow extraction completed for %s. Rows: %d", pcap_file.name, cross_flow_rows)
 
         except Exception:
-            logger.exception("Extraction failed for %s.", pcap_file.name)
+            logger.error("Extraction failed for %s.", pcap_file.name)
             raise
 
         finally:
@@ -584,7 +584,7 @@ def extraction_pipeline(pcap_dataset_path: str | Path = PCAP_DATASET_PATH, extra
             merged_files.append(_extract_day(day, pcap_files, extracted_path, merged_output_path, settings))
 
     except Exception:
-        logger.exception("Extraction pipeline failed.")
+        logger.error("Extraction pipeline failed.")
         raise
 
     logger.info("Extraction pipeline completed successfully. Days: %d | Merged files: %s", len(days), [str(path) for path in merged_files])
@@ -645,7 +645,7 @@ def _extract_piece(pcap_file: Path, work_path: Path, group_flow_path: Path, pack
         logger.info("Packet-level extraction completed for %s. Rows: %d", pcap_file.name, packet_rows)
 
     except Exception:
-        logger.exception("Extraction failed for %s.", pcap_file.name)
+        logger.error("Extraction failed for %s.", pcap_file.name)
         raise
 
     finally:
@@ -714,6 +714,7 @@ def _extract_batch(day: str, batch_index: int, groups: list, extracted_path: Pat
         group_flow_path.unlink()
 
         print(f"PCAP#{group_index + 1} of Batch {batch_index + 1} of Archive {day} finished processing.", flush=True)
+        logger.info("PCAP#%d of Batch %d of Archive %s finished processing.", group_index + 1, batch_index + 1, day)
 
     merge_pipeline(flow_path, packet_path, cross_flow_path, merged_path, append=batch_index > 0)
 
@@ -745,7 +746,7 @@ def _run_archive(day: str, limit: int | None, extracted_path: Path, merged_outpu
             try:
                 label_and_order(merged_path, LABELING_SCHEDULE_PATH, labeled_path)
             except Exception:
-                logger.exception("Labeling and ordering failed for archive %s.", day)
+                logger.error("Labeling and ordering failed for archive %s.", day)
                 raise
 
             logger.info("Archive %s done. Labeled output: %s", day, labeled_path)
@@ -786,7 +787,7 @@ def _run_archive(day: str, limit: int | None, extracted_path: Path, merged_outpu
     try:
         label_and_order(merged_path, LABELING_SCHEDULE_PATH, labeled_path)
     except Exception:
-        logger.exception("Labeling and ordering failed for archive %s.", day)
+        logger.error("Labeling and ordering failed for archive %s.", day)
         raise
 
     logger.info("Archive %s done. Labeled output: %s", day, labeled_path)
@@ -832,7 +833,7 @@ def download_and_extract(day: str | None = None, limit: int | None = None, extra
                 merged_files.append(merged_file)
 
     except Exception:
-        logger.exception("Download and extraction pipeline failed. Fix the issue and run the same command again to resume.")
+        logger.error("Download and extraction pipeline failed. Fix the issue and run the same command again to resume.")
         raise
 
     logger.info("Download and extraction pipeline completed successfully. Archives: %d | Newly merged files: %s", len(days), [str(path) for path in merged_files])

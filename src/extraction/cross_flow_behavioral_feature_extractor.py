@@ -11,8 +11,8 @@ from src.core.logger import logger
 
 GroupKey = Tuple[Any, ...]
 DEFAULT_CONFIG_PATH = "config/extraction/cross_flow_behavioral_feature_extractor.yaml"
-PROGRESS_EVERY_OBSERVATIONS = 5000
-PROGRESS_EVERY_SECONDS = 30.0
+PROGRESS_EVERY_OBSERVATIONS = 100_000
+PROGRESS_EVERY_SECONDS = 60.0
 ENTROPY_RECOMPUTE_EVERY = 100000
 _STAGE_SECONDS: Dict[str, float] = defaultdict(float)
 
@@ -212,6 +212,7 @@ def _compute_statistic(spec: Dict[str, Any], history: Sequence[Tuple[float, Any]
         return {"entropy_sum": entropy_sum}
     if kind == "sequentiality":
         return _sequentiality_from_state(state)
+    logger.error("unknown statistic type: %s", kind)
     raise ValueError(f"unknown statistic type: {kind}")
 
 
@@ -256,6 +257,7 @@ class CrossFlowBehavioralFeatureExtractor:
             elif name in self.constants:
                 resolved[name] = self.constants[name]
             else:
+                logger.error("required operand '%s' is neither an observation field nor a configured constant", name)
                 raise KeyError(f"required operand '{name}' is neither an observation field nor a configured constant")
         return resolved
 
@@ -343,11 +345,12 @@ class CrossFlowBehavioralFeatureExtractor:
         last_report = run_started
         last_report_count = 0
         count = 0
-        print("[cross-flow] extract started", flush=True)
+        logger.info("[cross-flow] extract started")
         for packet in packets:
             obs = self._build_observation(packet)
             ts = obs["timestamp"]
             if self._pending_ts is not None and ts < self._pending_ts:
+                logger.error("non-monotonic timestamp encountered: %s is earlier than previously seen %s", ts, self._pending_ts)
                 raise ValueError(
                     f"non-monotonic timestamp encountered: {ts} is earlier than "
                     f"the previously seen {self._pending_ts}; extract() requires "
@@ -365,7 +368,11 @@ class CrossFlowBehavioralFeatureExtractor:
             now = time.perf_counter()
             if count % PROGRESS_EVERY_OBSERVATIONS == 0 or now - last_report >= PROGRESS_EVERY_SECONDS:
                 longest_size, longest_stream, longest_group = _longest_history(self._history)
-                print(f"[cross-flow] observations={count} block_rows={count - last_report_count} block_seconds={now - last_report:.1f} total_seconds={now - run_started:.1f} longest_history={longest_size} stream={longest_stream} group={longest_group} stages: {_stage_summary()}", flush=True)
+                logger.info(
+                    "[cross-flow] observations=%d block_rows=%d block_seconds=%.1f total_seconds=%.1f longest_history=%d stream=%s group=%s stages: %s",
+                    count, count - last_report_count, now - last_report, now - run_started,
+                    longest_size, longest_stream, longest_group, _stage_summary()
+                )
                 last_report = now
                 last_report_count = count
-        print(f"[cross-flow] extract finished observations={count} total_seconds={time.perf_counter() - run_started:.1f} stages: {_stage_summary()}", flush=True)
+        logger.info("[cross-flow] extract finished observations=%d total_seconds=%.1f stages: %s", count, time.perf_counter() - run_started, _stage_summary())
