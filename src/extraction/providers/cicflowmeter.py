@@ -5,8 +5,7 @@ import logging
 import subprocess
 from pathlib import Path
 from typing import Dict, Iterator, List, Tuple
-
-logger = logging.getLogger(__name__)
+from src.core.logger import logger
 
 
 def _build_rename_and_duplicate_maps(schema: List[Dict[str, str]]) -> Tuple[Dict[str, str], List[Tuple[str, str]]]:
@@ -23,16 +22,21 @@ def _build_rename_and_duplicate_maps(schema: List[Dict[str, str]]) -> Tuple[Dict
 
 def run_cicflowmeter(pcap_path: Path, executable: Path, work_dir: Path) -> Path:
     if not pcap_path.is_file():
+        logger.error("PCAP not found: %s", pcap_path)
         raise FileNotFoundError(f"PCAP not found: {pcap_path}")
     if not executable.is_file():
+        logger.error("CICFlowMeter executable not found: %s", executable)
         raise FileNotFoundError(f"CICFlowMeter executable not found: {executable}")
     logger.info("Running CICFlowMeter on %s", pcap_path)
     result = subprocess.run([str(executable), str(pcap_path), str(work_dir)], capture_output=True, text=True)
     if result.returncode != 0:
+        logger.error("CICFlowMeter exited with code %d while processing %s", result.returncode, pcap_path)
         raise RuntimeError(f"CICFlowMeter exited with code {result.returncode} while processing {pcap_path}.\n--- stdout ---\n{result.stdout}\n--- stderr ---\n{result.stderr}")
     raw_csv_path = work_dir / f"{pcap_path.name}_Flow.csv"
     if not raw_csv_path.is_file():
+        logger.error("CICFlowMeter reported success but expected output was not found at %s", raw_csv_path)
         raise RuntimeError(f"CICFlowMeter reported success but its expected output was not found at {raw_csv_path}.\n--- stdout ---\n{result.stdout}")
+    logger.info("CICFlowMeter produced %s", raw_csv_path)
     return raw_csv_path
 
 
@@ -43,6 +47,7 @@ def remap_rows(raw_csv_path: Path, schema: List[Dict[str, str]]) -> Iterator[Dic
         available = set(reader.fieldnames or [])
         missing = sorted(set(renames) - available)
         if missing:
+            logger.error("CICFlowMeter output at %s is missing expected column(s): %s", raw_csv_path, missing)
             raise RuntimeError(f"CICFlowMeter output at {raw_csv_path} is missing expected column(s): {missing}. The build's output schema may have changed -- update the YAML schema mapping in flow_extraction.yaml.")
         row_count = 0
         for row in reader:
@@ -65,3 +70,5 @@ def extract(pcap_path: Path, cicflowmeter_config: Dict, schema: List[Dict[str, s
     finally:
         if not preserve_intermediate_csv and raw_csv_path.exists():
             raw_csv_path.unlink()
+            logger.info("Removed intermediate CSV %s", raw_csv_path)
+    logger.info("Finished flow extraction for %s", pcap_path)

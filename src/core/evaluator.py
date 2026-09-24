@@ -266,8 +266,8 @@ def evaluate(l: list):
         elif token_str in operations:
 
             if len(stack) < 2:
-                logger.error(f'Malformed expression: {token} missing operands.')
-                raise ValueError(f"Malformed expression: {token} missing operands.")
+                logger.error('Malformed expression: %s missing operands.', token)
+                raise ValueError('Malformed expression: %s missing operands.', token)
 
             right = stack.pop()
             left = stack.pop()
@@ -334,7 +334,7 @@ def bind_var_and_evaluate(exp_f: list, **kwargs):
             if token in kwargs:
                 expr[i] = kwargs[token]
             else:
-                logger.error(f'Parameter {token} not fulfilled')
-                raise ValueError(f"Parameter {token} not fulfilled")
+                logger.error('Parameter %s not fulfilled', token)
+                raise ValueError('Parameter %s not fulfilled', token)
 
     return evaluate(expr)

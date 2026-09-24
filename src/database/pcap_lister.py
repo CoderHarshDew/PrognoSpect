@@ -6,6 +6,8 @@ import tempfile
 import zlib
 from pathlib import Path
 
+from src.core.logger import logger
+
 BUCKET = "cse-cic-ids2018"
 REGION = "ca-central-1"
 PREFIX = "Original Network Traffic and Log data/"
@@ -17,7 +19,9 @@ FIELDS = ["day", "archive", "entry", "compressed_size", "uncompressed_size", "me
 def run(command):
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "Command failed")
+        error = result.stderr.strip() or "Command failed"
+        logger.error(f"Command failed: {' '.join(command)}\n{error}")
+        raise RuntimeError(error)
     return result.stdout
 
 
@@ -31,11 +35,13 @@ def get_archives():
         "--query", "Contents[?ends_with(Key, 'pcap.zip')].Key",
         "--output", "json"
     ])
-    return json.loads(output)
+    archives = json.loads(output)
+    logger.info(f"Retrieved {len(archives)} PCAP archive keys from S3.")
+    return archives
 
 
 def get_size(key):
-    return int(run([
+    size = int(run([
         "aws", "s3api", "head-object",
         "--no-sign-request",
         "--region", REGION,
@@ -44,6 +50,8 @@ def get_size(key):
         "--query", "ContentLength",
         "--output", "text"
     ]).strip())
+    logger.info(f"Resolved size of {key}: {size} bytes.")
+    return size
 
 
 def download_range(url, start, end, output):
@@ -69,6 +77,7 @@ def find_central_directory_from_tail(data, zip_size, tail_size):
 
     eocd = data.rfind(b"PK\x05\x06")
     if eocd == -1:
+        logger.error(f"ZIP EOCD not found in downloaded tail (zip_size={zip_size}, tail_size={tail_size}).")
         raise ValueError("ZIP EOCD not found")
 
     entries16 = struct.unpack_from("<H", data, eocd + 10)[0]
@@ -76,22 +85,26 @@ def find_central_directory_from_tail(data, zip_size, tail_size):
     cd_offset32 = struct.unpack_from("<I", data, eocd + 16)[0]
 
     if entries16 != 0xFFFF and cd_offset32 != 0xFFFFFFFF:
+        logger.info(f"Resolved central directory (standard EOCD): {entries16} entries, offset={cd_offset32}, size={cd_size32}.")
         return cd_offset32, cd_size32, entries16
 
     locator = data.rfind(b"PK\x06\x07", 0, eocd)
     if locator == -1:
+        logger.error(f"ZIP64 locator not found (zip_size={zip_size}, tail_size={tail_size}).")
         raise ValueError("ZIP64 locator not found")
 
     zip64_offset = struct.unpack_from("<Q", data, locator + 8)[0]
     local = zip64_offset - tail_start
 
     if local < 0 or data[local:local + 4] != b"PK\x06\x06":
+        logger.error(f"ZIP64 EOCD is outside downloaded tail (zip64_offset={zip64_offset}, tail_start={tail_start}).")
         raise ValueError("ZIP64 EOCD is outside downloaded tail")
 
     entries = struct.unpack_from("<Q", data, local + 32)[0]
     cd_size = struct.unpack_from("<Q", data, local + 40)[0]
     cd_offset = struct.unpack_from("<Q", data, local + 48)[0]
 
+    logger.info(f"Resolved central directory (ZIP64 EOCD): {entries} entries, offset={cd_offset}, size={cd_size}.")
     return cd_offset, cd_size, entries
 
 
@@ -119,6 +132,7 @@ def parse_entries(central):
     offset = 0
     while offset < len(central):
         if central[offset:offset + 4] != b"PK\x01\x02":
+            logger.error(f"Invalid central-directory entry at offset {offset}.")
             raise ValueError(f"Invalid central-directory entry at offset {offset}")
 
         flags, method = struct.unpack_from("<HH", central, offset + 8)
@@ -141,6 +155,7 @@ def parse_entries(central):
         })
 
         offset += 46 + name_length + extra_length + comment_length
+    logger.info(f"Parsed {len(rows)} central-directory entries.")
     return rows
 
 
@@ -149,6 +164,7 @@ def member_reader(reader, row):
     header = reader(local_offset, local_offset + 29)
 
     if header[:4] != b"PK\x03\x04":
+        logger.error(f"Invalid local ZIP header for {row['name']} at offset {local_offset}.")
         raise ValueError("Invalid local ZIP header")
 
     name_length, extra_length = struct.unpack_from("<HH", header, 26)
@@ -162,10 +178,12 @@ def member_reader(reader, row):
         data = zlib.decompress(raw, -15)
         return (lambda start, end: data[start:end + 1]), len(data)
 
+    logger.error(f"Unsupported compression method {row['method']} for {row['name']}.")
     raise ValueError(f"Unsupported compression method {row['method']} for {row['name']}")
 
 
 def list_zip(reader, size, chain=""):
+    logger.info(f"Listing zip '{chain or '<root>'}' ({size} bytes).")
     tail_size = min(size, 1_000_000)
     tail = reader(size - tail_size, size - 1)
     cd_offset, cd_size, entries = find_central_directory_from_tail(tail, size, tail_size)
@@ -177,8 +195,10 @@ def list_zip(reader, size, chain=""):
         rows.append(row)
         if row["name"].lower().endswith(".zip"):
             print(f"  Nested archive: {row['entry']}")
+            logger.info(f"Descending into nested archive: {row['entry']}")
             nested_reader, nested_size = member_reader(reader, row)
             rows.extend(list_zip(nested_reader, nested_size, row["entry"] + "!"))
+    logger.info(f"Finished listing zip '{chain or '<root>'}': {len(rows)} total entries (including nested).")
     return rows
 
 
@@ -194,6 +214,7 @@ def write_rows(path, rows):
         writer = csv.DictWriter(handle, fieldnames=FIELDS, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(rows)
+    logger.info(f"Wrote {len(rows)} rows to {path}.")
 
 
 def build_lists(output_dir, all_name="all_entries", pcaps_name="pcaps", combined_name="all"):
@@ -203,6 +224,7 @@ def build_lists(output_dir, all_name="all_entries", pcaps_name="pcaps", combined
     archives = get_archives()
     print(f"Found {len(archives)} PCAP archives.")
     print()
+    logger.info(f"Beginning build_lists run for {len(archives)} archives, output_dir={output_dir}.")
 
     combined_all = []
     combined_pcaps = []
@@ -212,6 +234,7 @@ def build_lists(output_dir, all_name="all_entries", pcaps_name="pcaps", combined
         url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{key.replace(' ', '%20')}"
 
         print(f"[{index}/{len(archives)}] {day}")
+        logger.info(f"[{index}/{len(archives)}] Processing archive for day '{day}': {key}")
 
         rows = list_zip(make_reader(url), get_size(key))
         for row in rows:
@@ -225,6 +248,7 @@ def build_lists(output_dir, all_name="all_entries", pcaps_name="pcaps", combined
 
         print(f"  Entries: {len(rows)}  PCAPs: {len(pcaps)}")
         print()
+        logger.info(f"Completed day '{day}': {len(rows)} entries, {len(pcaps)} PCAPs.")
 
         combined_all.extend(rows)
         combined_pcaps.extend(pcaps)
@@ -233,6 +257,7 @@ def build_lists(output_dir, all_name="all_entries", pcaps_name="pcaps", combined
     write_rows(output_dir / f"{pcaps_name}_{combined_name}.csv", combined_pcaps)
 
     print(f"Total entries: {len(combined_all)}  Total PCAPs: {len(combined_pcaps)}")
+    logger.info(f"Finished build_lists run: {len(combined_all)} total entries, {len(combined_pcaps)} total PCAPs.")
 
 
 

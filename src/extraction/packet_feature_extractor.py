@@ -5,14 +5,12 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Optional, Tuple
 import csv
-import logging
 import math
 import statistics
 from src.core.config import config_loader
+from src.core.logger import logger
 from src.database.pcap_reader import PCAPReader
 from src.extraction.pcap_frame_parser import PCAPPacketLevelParser
-
-logger = logging.getLogger(__name__)
 
 DEFAULT_JOINER_CONFIG_PATH = Path("config/extraction/flow_packet_joiner.yaml")
 DEFAULT_EXTRACTOR_CONFIG_PATH = Path("config/extraction/packet_feature_extractor.yaml")
@@ -65,6 +63,7 @@ class FlowPacketJoiner:
             if self.debug_logging:
                 logger.debug("pcap %s truncated after last successful timestamp %s: %s", pcap_path, last_successful_timestamp, error)
 
+        logger.info("indexed %d packet(s) into %d key(s) from %s (complete=%s)", sum(len(v) for v in index.values()), len(index), pcap_path, file_complete)
         return index, last_successful_timestamp, file_complete
 
     def _parse_row(self, row: Dict[str, str]) -> Optional[Dict[str, Any]]:
@@ -127,6 +126,7 @@ class FlowPacketJoiner:
                     retransmission_count=flow["retransmission_count"],
                 ))
 
+        logger.info("joined %d flow(s) from %s against %s", len(joined_flows), cicflowmeter_csv_path, pcap_path)
         return joined_flows
 
 
@@ -157,6 +157,7 @@ def _compute_statistic(values: List[float], statistic: str) -> float:
         return _percentile(sorted(values), 25)
     if statistic == "p75":
         return _percentile(sorted(values), 75)
+    logger.error("unknown statistic: %s", statistic)
     raise ValueError(f"unknown statistic: {statistic}")
 
 
@@ -230,7 +231,11 @@ def extract_packet_features(config: Dict[str, Any], joined_flow: JoinedFlow) -> 
 def extract_all(pcap_path: Path, cicflowmeter_csv_path: Path, tshark_path: str, joiner_config_path: Path = DEFAULT_JOINER_CONFIG_PATH, extractor_config_path: Path = DEFAULT_EXTRACTOR_CONFIG_PATH) -> Iterator[Dict[str, Any]]:
     extractor_config = config_loader(extractor_config_path)
     joiner = FlowPacketJoiner(config_path=joiner_config_path)
+    logger.info("starting packet feature extraction for %s", pcap_path)
+    record_count = 0
     for joined_flow in joiner.join(pcap_path, cicflowmeter_csv_path, tshark_path):
         record = {"flow_id": joined_flow.flow_id, "packet_data_complete": joined_flow.packet_data_complete}
         record.update(extract_packet_features(extractor_config, joined_flow))
+        record_count += 1
         yield record
+    logger.info("finished packet feature extraction for %s: %d record(s)", pcap_path, record_count)

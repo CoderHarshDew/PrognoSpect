@@ -6,6 +6,7 @@ import tempfile
 import zipfile
 import zlib
 from pathlib import Path
+from src.core.logger import logger
 
 BUCKET = "cse-cic-ids2018"
 REGION = "ca-central-1"
@@ -15,13 +16,16 @@ OUTPUT_DIR = Path("dataset/pcap/test")
 
 
 def run(command):
+    logger.debug("Running command: %s", " ".join(command))
     result = subprocess.run(command, capture_output=True, text=True)
     if result.returncode != 0:
+        logger.error("Command failed | Exit code: %d | Command: %s | Stderr: %s", result.returncode, " ".join(command), result.stderr.strip())
         raise RuntimeError(result.stderr.strip() or "Command failed")
     return result.stdout
 
 
 def get_archives():
+    logger.info("Listing PCAP archives | Bucket: %s | Prefix: %s", BUCKET, PREFIX)
     output = run([
         "aws", "s3api", "list-objects-v2",
         "--no-sign-request",
@@ -35,12 +39,13 @@ def get_archives():
 
 
 def download_range(url, start, end, output):
-    subprocess.run([
-        "curl.exe", "-L", "--fail",
-        "--range", f"{start}-{end}",
-        "-o", str(output),
-        url
-    ], check=True)
+    logger.debug("Downloading bytes %d-%d to %s", start, end, output)
+    try:
+        subprocess.run(["curl.exe", "-L", "--fail","--range", f"{start}-{end}","-o", str(output),url], check=True)
+    except subprocess.CalledProcessError as error:
+        logger.error("curl failed | Exit code: %d | Bytes: %d-%d | Output: %s | URL: %s", error.returncode, start, end, output, url)
+        raise
+    logger.debug("Downloaded bytes %d-%d to %s", start, end, output)
 
 
 def find_central_directory(zip_path, tail_size):
@@ -50,6 +55,7 @@ def find_central_directory(zip_path, tail_size):
 
     eocd = data.rfind(b"PK\x05\x06")
     if eocd == -1:
+        logger.error("ZIP EOCD not found in %s.", zip_path)
         raise ValueError("ZIP EOCD not found")
 
     fields = struct.unpack_from("<4s4H2IH", data, eocd)
@@ -62,12 +68,14 @@ def find_central_directory(zip_path, tail_size):
 
     locator = data.rfind(b"PK\x06\x07", 0, eocd)
     if locator == -1:
+        logger.error("ZIP64 locator not found in %s.", zip_path)
         raise ValueError("ZIP64 locator not found")
 
     zip64_offset = struct.unpack_from("<Q", data, locator + 8)[0]
     zip64_eocd = data[zip64_offset - tail_start:]
 
     if zip64_eocd[:4] != b"PK\x06\x06":
+        logger.error("ZIP64 EOCD not found in %s at offset %d.", zip_path, zip64_offset)
         raise ValueError("ZIP64 EOCD not found")
 
     entries = struct.unpack_from("<Q", zip64_eocd, 32)[0]
@@ -81,6 +89,7 @@ def parse_first_pcap(central_directory):
     offset = 0
     while offset < len(central_directory):
         if central_directory[offset:offset + 4] != b"PK\x01\x02":
+            logger.error("Invalid central-directory entry at offset %d while looking for the first PCAP entry.", offset)
             raise ValueError(f"Invalid central-directory entry at offset {offset}")
 
         compressed_size = struct.unpack_from("<I", central_directory, offset + 20)[0]
@@ -93,14 +102,17 @@ def parse_first_pcap(central_directory):
         name = central_directory[name_start:name_start + filename_length].decode("utf-8")
 
         if name.startswith("pcap/") and not name.endswith("/"):
+            logger.info("Selected first PCAP entry: %s | Compressed: %d bytes | Local offset: %d", name, compressed_size, local_offset)
             return name, compressed_size, local_offset
 
         offset += 46 + filename_length + extra_length + comment_length
 
+    logger.error("No PCAP entry found in the central directory.")
     raise ValueError("No PCAP entry found")
 
 
 def extract_member(url, zip_size, entry_name, compressed_size, local_offset, output):
+    logger.info("Extracting %s | Compressed: %d bytes | Output: %s", entry_name, compressed_size, output)
     local_header_start = local_offset
     local_header_end = local_offset + 29
 
@@ -112,66 +124,20 @@ def extract_member(url, zip_size, entry_name, compressed_size, local_offset, out
         header = local_header.read_bytes()
 
         if header[:4] != b"PK\x03\x04":
+            logger.error("Invalid local ZIP header for %s at offset %d (first bytes: %s).", entry_name, local_offset, header[:4].hex())
             raise ValueError("Invalid local ZIP header")
 
         filename_length, extra_length = struct.unpack_from("<HH", header, 26)
         data_start = local_offset + 30 + filename_length + extra_length
         data_end = data_start + compressed_size - 1
+        logger.info("Downloading compressed data for %s | Bytes: %d-%d", entry_name, data_start, data_end)
 
         compressed = temp / "compressed.bin"
         download_range(url, data_start, data_end, compressed)
 
         raw = compressed.read_bytes()
         output.write_bytes(zlib.decompress(raw, -15))
-
-
-def main():
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-    archives = get_archives()
-    selected = archives[:COUNT]
-
-    print(f"Found {len(archives)} PCAP archives.")
-    print(f"Using {len(selected)} archives.")
-    print()
-
-    for index, key in enumerate(selected, 1):
-        day = Path(key).parent.name
-        url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{key.replace(' ', '%20')}"
-
-        print(f"[{index}/{len(selected)}] {day}")
-
-        with tempfile.TemporaryDirectory() as temp:
-            temp = Path(temp)
-            tail = temp / "zip-tail.bin"
-
-            size = int(run([
-                "aws", "s3api", "head-object",
-                "--no-sign-request",
-                "--region", REGION,
-                "--bucket", BUCKET,
-                "--key", key,
-                "--query", "ContentLength",
-                "--output", "text"
-            ]).strip())
-
-            tail_size = min(size, 1_000_000)
-            download_range(url, size - tail_size, size - 1, tail)
-
-            cd_offset, cd_size, entries = find_central_directory_from_tail(tail.read_bytes(), size, tail_size)
-
-            central = temp / "central.bin"
-            download_range(url, cd_offset, cd_offset + cd_size - 1, central)
-
-            entry_name, compressed_size, local_offset = parse_first_pcap(central.read_bytes())
-
-            output = OUTPUT_DIR / f"{day}-{Path(entry_name).name}.pcap"
-
-            print(f"  Selected: {entry_name}")
-            print(f"  Output:   {output}")
-            extract_member(url, size, entry_name, compressed_size, local_offset, output)
-            print(f"  Saved:    {output.stat().st_size:,} bytes")
-            print()
+        logger.info("Extracted %s | Size: %d bytes", output, output.stat().st_size)
 
 
 def find_central_directory_from_tail(data, zip_size, tail_size):
@@ -179,6 +145,7 @@ def find_central_directory_from_tail(data, zip_size, tail_size):
 
     eocd = data.rfind(b"PK\x05\x06")
     if eocd == -1:
+        logger.error("ZIP EOCD not found in the last %d bytes of the archive.", tail_size)
         raise ValueError("ZIP EOCD not found")
 
     entries16 = struct.unpack_from("<H", data, eocd + 10)[0]
@@ -190,12 +157,14 @@ def find_central_directory_from_tail(data, zip_size, tail_size):
 
     locator = data.rfind(b"PK\x06\x07", 0, eocd)
     if locator == -1:
+        logger.error("ZIP64 locator not found in the last %d bytes of the archive.", tail_size)
         raise ValueError("ZIP64 locator not found")
 
     zip64_offset = struct.unpack_from("<Q", data, locator + 8)[0]
     local = zip64_offset - tail_start
 
     if local < 0 or data[local:local + 4] != b"PK\x06\x06":
+        logger.error("ZIP64 EOCD is outside the downloaded tail | ZIP64 EOCD offset: %d | Tail start: %d | Tail size: %d bytes", zip64_offset, tail_start, tail_size)
         raise ValueError("ZIP64 EOCD is outside downloaded tail")
 
     entries = struct.unpack_from("<Q", data, local + 32)[0]
@@ -207,12 +176,14 @@ def find_central_directory_from_tail(data, zip_size, tail_size):
 def fetch_central_directory(key):
     url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{key.replace(' ', '%20')}"
     size = int(run(["aws", "s3api", "head-object", "--no-sign-request", "--region", REGION, "--bucket", BUCKET, "--key", key, "--query", "ContentLength", "--output", "text"]).strip())
+    logger.info("Fetching central directory | Archive: %s | Size: %d bytes", key, size)
     with tempfile.TemporaryDirectory() as temp:
         temp = Path(temp)
         tail = temp / "zip-tail.bin"
         tail_size = min(size, 1_000_000)
         download_range(url, size - tail_size, size - 1, tail)
         cd_offset, cd_size, entries = find_central_directory_from_tail(tail.read_bytes(), size, tail_size)
+        logger.info("Central directory located | Archive: %s | Entries: %d | Offset: %d | Size: %d bytes", key, entries, cd_offset, cd_size)
         central = temp / "central.bin"
         download_range(url, cd_offset, cd_offset + cd_size - 1, central)
         return size, entries, central.read_bytes()
@@ -223,6 +194,7 @@ def parse_entries(central):
     offset = 0
     while offset < len(central):
         if central[offset:offset + 4] != b"PK\x01\x02":
+            logger.error("Invalid central-directory entry at offset %d while parsing entries.", offset)
             raise ValueError(f"Invalid central-directory entry at offset {offset}")
         flags, method = struct.unpack_from("<HH", central, offset + 8)
         compressed_size, uncompressed_size = struct.unpack_from("<II", central, offset + 20)
@@ -236,6 +208,7 @@ def parse_entries(central):
 def probe():
     archives = get_archives()
     print(len(archives))
+    logger.info("Probe found %d archive(s); inspecting the first one.", len(archives))
     for key in archives:
         print(key)
     size, entries, central = fetch_central_directory(archives[0])
@@ -266,6 +239,7 @@ def find_entry(central, entry_name):
     offset = 0
     while offset < len(central):
         if central[offset:offset + 4] != b"PK\x01\x02":
+            logger.error("Invalid central-directory entry at offset %d while looking for %s.", offset, entry_name)
             raise ValueError(f"Invalid central-directory entry at offset {offset}")
         compressed_size, uncompressed_size = struct.unpack_from("<II", central, offset + 20)
         name_length, extra_length, comment_length = struct.unpack_from("<HHH", central, offset + 28)
@@ -273,13 +247,16 @@ def find_entry(central, entry_name):
         name = central[offset + 46:offset + 46 + name_length].decode("utf-8")
         if name == entry_name:
             compressed_size, local_offset = read_zip64_extra(central, offset + 46 + name_length, extra_length, uncompressed_size, compressed_size, local_offset)
+            logger.debug("Found entry %s | Compressed: %d bytes | Local offset: %d", name, compressed_size, local_offset)
             return name, compressed_size, local_offset
         offset += 46 + name_length + extra_length + comment_length
+    logger.error("Entry not found in central directory: %s", entry_name)
     raise ValueError(f"Entry not found: {entry_name}")
 
 
 def download_entry(day, entry_name):
     key = f"{PREFIX}{day}/pcap.zip"
+    logger.info("Downloading entry %s | Day: %s", entry_name, day)
     url = f"https://{BUCKET}.s3.{REGION}.amazonaws.com/{key.replace(' ', '%20')}"
     size, entries, central = fetch_central_directory(key)
     name, compressed_size, local_offset = find_entry(central, entry_name)
