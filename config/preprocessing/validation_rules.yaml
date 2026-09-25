@@ -1,4 +1,4 @@
-version: 1.0
+version: 2.0
 
 templates:
 
@@ -13,6 +13,32 @@ templates:
   info: &info
     severity: info
     action: report
+
+  sentinel_conflict: &sentinel_conflict
+    severity: error
+    action: flag_for_review
+
+
+sentinel_condition:
+
+  tcp_window_fwd_na: &cond_tcp_window_fwd |
+    Protocol != 6
+    OR
+    Total Fwd Packets == 0
+
+  tcp_window_bwd_na: &cond_tcp_window_bwd |
+    Protocol != 6
+    OR
+    Total Bwd Packets == 0
+
+  ttl_fwd_na: &cond_ttl_fwd |
+    Total Fwd Packets == 0
+
+  ttl_bwd_na: &cond_ttl_bwd |
+    Total Bwd Packets == 0
+
+  fragmentation_offset_na: &cond_fragmentation_offset |
+    Fragmentation Count == 0
 
 
 VALID_LABEL_SET:
@@ -38,44 +64,49 @@ rules:
   - id: R001
     <<: *error
     name: Destination Port Range
+    scope: group
     columns:
-      - Dst Port
+      - Destination Port
     expression: |
-      0 <= Dst Port <= 65535
+      0 <= Destination Port <= 65535
 
   - id: R002
     <<: *error
     name: Packet Length Ordering
+    scope: group
     columns:
-      - Pkt Len Min
-      - Pkt Len Mean
-      - Pkt Len Max
+      - Packet Length Min
+      - Packet Length Mean
+      - Packet Length Max
     expression: |
-      Pkt Len Min <= Pkt Len Mean <= Pkt Len Max
+      Packet Length Min <= Packet Length Mean <= Packet Length Max
 
   - id: R003
     <<: *error
     name: Forward Packet Length Ordering
+    scope: group
     columns:
-      - Fwd Pkt Len Min
-      - Fwd Pkt Len Mean
-      - Fwd Pkt Len Max
+      - Fwd Packet Length Min
+      - Fwd Packet Length Mean
+      - Fwd Packet Length Max
     expression: |
-      Fwd Pkt Len Min <= Fwd Pkt Len Mean <= Fwd Pkt Len Max
+      Fwd Packet Length Min <= Fwd Packet Length Mean <= Fwd Packet Length Max
 
   - id: R004
     <<: *error
     name: Backward Packet Length Ordering
+    scope: group
     columns:
-      - Bwd Pkt Len Min
-      - Bwd Pkt Len Mean
-      - Bwd Pkt Len Max
+      - Bwd Packet Length Min
+      - Bwd Packet Length Mean
+      - Bwd Packet Length Max
     expression: |
-      Bwd Pkt Len Min <= Bwd Pkt Len Mean <= Bwd Pkt Len Max
+      Bwd Packet Length Min <= Bwd Packet Length Mean <= Bwd Packet Length Max
 
   - id: R005
     <<: *error
     name: Active Statistics Ordering
+    scope: group
     columns:
       - Active Min
       - Active Mean
@@ -86,6 +117,7 @@ rules:
   - id: R006
     <<: *error
     name: Idle Statistics Ordering
+    scope: group
     columns:
       - Idle Min
       - Idle Mean
@@ -96,26 +128,29 @@ rules:
   - id: R007
     <<: *error
     name: Packet Count Consistency
+    scope: group
     columns:
-      - Fwd Act Data Pkts
-      - Tot Fwd Pkts
+      - act_data_pkt_fwd
+      - Total Fwd Packets
     expression: |
-      Fwd Act Data Pkts <= Tot Fwd Pkts
+      act_data_pkt_fwd <= Total Fwd Packets
 
   - id: R008
     <<: *warning
     name: Header Length Validity
+    scope: group
     columns:
-      - Fwd Header Len
-      - Bwd Header Len
+      - Fwd Header Length
+      - Bwd Header Length
     expression: |
-      Fwd Header Len >= 0
+      Fwd Header Length >= 0
       AND
-      Bwd Header Len >= 0
+      Bwd Header Length >= 0
 
   - id: R009
     <<: *warning
     name: Flow Duration Consistency
+    scope: group
     columns:
       - Active Max
       - Idle Max
@@ -128,6 +163,7 @@ rules:
   - id: R010
     <<: *warning
     name: IAT Consistency
+    scope: group
     columns:
       - Flow IAT Min
       - Flow IAT Mean
@@ -138,6 +174,7 @@ rules:
   - id: R011
     <<: *warning
     name: Forward IAT Consistency
+    scope: group
     columns:
       - Fwd IAT Min
       - Fwd IAT Mean
@@ -148,6 +185,7 @@ rules:
   - id: R012
     <<: *warning
     name: Backward IAT Consistency
+    scope: group
     columns:
       - Bwd IAT Min
       - Bwd IAT Mean
@@ -159,19 +197,21 @@ rules:
     <<: *warning
     name: TCP Window Sentinel
     description: >
-      -1 is allowed as a sentinel value for Init Bwd Win Byts.
+      -1 is allowed as a sentinel value for Init_Win_bytes_backward.
+    scope: group
     columns:
-      - Init Bwd Win Byts
+      - Init_Win_bytes_backward
     expression: |
-      Init Bwd Win Byts == -1
+      Init_Win_bytes_backward == -1
       OR
       (
-        0 <= Init Bwd Win Byts <= 65535
+        0 <= Init_Win_bytes_backward <= 65535
       )
 
   - id: R014
     <<: *info
     name: Rate Availability
+    scope: group
     columns:
       - Flow Duration
     expression: |
@@ -180,10 +220,415 @@ rules:
   - id: R015
     <<: *info
     name: Known Label
+    scope: group
     columns:
       - Label
     expression: |
       Label in VALID_LABEL_SET
+
+  - id: R016
+    <<: *error
+    name: Flow Bytes Per Second Consistency
+    scope: column
+    target_column: Flow Bytes/s
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Flow Bytes/s
+      - Total Length of Fwd Packets
+      - Total Length of Bwd Packets
+      - Flow Duration
+    repair_expression: |
+      (Total Length of Fwd Packets + Total Length of Bwd Packets) / Flow Duration
+
+  - id: R017
+    <<: *error
+    name: Flow Packets Per Second Consistency
+    scope: column
+    target_column: Flow Packets/s
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Flow Packets/s
+      - Total Fwd Packets
+      - Total Bwd Packets
+      - Flow Duration
+    repair_expression: |
+      (Total Fwd Packets + Total Bwd Packets) / Flow Duration
+
+  - id: R018
+    <<: *error
+    name: Forward Packets Per Second Consistency
+    scope: column
+    target_column: Fwd Packets/s
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Fwd Packets/s
+      - Total Fwd Packets
+      - Flow Duration
+    repair_expression: |
+      Total Fwd Packets / Flow Duration
+
+  - id: R019
+    <<: *error
+    name: Backward Packets Per Second Consistency
+    scope: column
+    target_column: Bwd Packets/s
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Bwd Packets/s
+      - Total Bwd Packets
+      - Flow Duration
+    repair_expression: |
+      Total Bwd Packets / Flow Duration
+
+  - id: R020
+    <<: *error
+    name: Average Forward Segment Size Consistency
+    scope: column
+    target_column: Avg Fwd Segment Size
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Avg Fwd Segment Size
+      - Total Length of Fwd Packets
+      - Total Fwd Packets
+    repair_expression: |
+      Total Length of Fwd Packets / Total Fwd Packets
+
+  - id: R021
+    <<: *error
+    name: Average Backward Segment Size Consistency
+    scope: column
+    target_column: Avg Bwd Segment Size
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Avg Bwd Segment Size
+      - Total Length of Bwd Packets
+      - Total Bwd Packets
+    repair_expression: |
+      Total Length of Bwd Packets / Total Bwd Packets
+
+  - id: R022
+    <<: *error
+    name: Down Up Ratio Consistency
+    scope: column
+    target_column: Down/Up Ratio
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Down/Up Ratio
+      - Total Bwd Packets
+      - Total Fwd Packets
+    repair_expression: |
+      Total Bwd Packets / Total Fwd Packets
+
+  - id: R023
+    <<: *error
+    name: Packet Length Variance Consistency
+    scope: column
+    target_column: Packet Length Variance
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Packet Length Variance
+      - Packet Length Std
+    repair_expression: |
+      Packet Length Std ** 2
+
+  - id: R024
+    <<: *error
+    name: Forward Header Length Duplicate Consistency
+    scope: column
+    target_column: Fwd Header Length.1
+    depends_on: []
+    tolerance: 1.0e-6
+    columns:
+      - Fwd Header Length.1
+      - Fwd Header Length
+    repair_expression: |
+      Fwd Header Length
+
+  - id: G001
+    <<: *sentinel_conflict
+    name: TCP Window Forward Mean Sentinel Consistency
+    scope: group
+    target_column: TCP Window Fwd Mean
+    columns:
+      - TCP Window Fwd Mean
+      - Protocol
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_fwd
+    expression: |
+      TCP Window Fwd Mean != -1
+
+  - id: G002
+    <<: *sentinel_conflict
+    name: TCP Window Forward Std Sentinel Consistency
+    scope: group
+    target_column: TCP Window Fwd Std
+    columns:
+      - TCP Window Fwd Std
+      - Protocol
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_fwd
+    expression: |
+      TCP Window Fwd Std != -1
+
+  - id: G003
+    <<: *sentinel_conflict
+    name: TCP Window Forward Min Sentinel Consistency
+    scope: group
+    target_column: TCP Window Fwd Min
+    columns:
+      - TCP Window Fwd Min
+      - Protocol
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_fwd
+    expression: |
+      TCP Window Fwd Min != -1
+
+  - id: G004
+    <<: *sentinel_conflict
+    name: TCP Window Forward Max Sentinel Consistency
+    scope: group
+    target_column: TCP Window Fwd Max
+    columns:
+      - TCP Window Fwd Max
+      - Protocol
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_fwd
+    expression: |
+      TCP Window Fwd Max != -1
+
+  - id: G005
+    <<: *sentinel_conflict
+    name: TCP Window Backward Mean Sentinel Consistency
+    scope: group
+    target_column: TCP Window Bwd Mean
+    columns:
+      - TCP Window Bwd Mean
+      - Protocol
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_bwd
+    expression: |
+      TCP Window Bwd Mean != -1
+
+  - id: G006
+    <<: *sentinel_conflict
+    name: TCP Window Backward Std Sentinel Consistency
+    scope: group
+    target_column: TCP Window Bwd Std
+    columns:
+      - TCP Window Bwd Std
+      - Protocol
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_bwd
+    expression: |
+      TCP Window Bwd Std != -1
+
+  - id: G007
+    <<: *sentinel_conflict
+    name: TCP Window Backward Min Sentinel Consistency
+    scope: group
+    target_column: TCP Window Bwd Min
+    columns:
+      - TCP Window Bwd Min
+      - Protocol
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_bwd
+    expression: |
+      TCP Window Bwd Min != -1
+
+  - id: G008
+    <<: *sentinel_conflict
+    name: TCP Window Backward Max Sentinel Consistency
+    scope: group
+    target_column: TCP Window Bwd Max
+    columns:
+      - TCP Window Bwd Max
+      - Protocol
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_tcp_window_bwd
+    expression: |
+      TCP Window Bwd Max != -1
+
+  - id: G009
+    <<: *sentinel_conflict
+    name: TTL Forward Mean Sentinel Consistency
+    scope: group
+    target_column: TTL Fwd Mean
+    columns:
+      - TTL Fwd Mean
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_fwd
+    expression: |
+      TTL Fwd Mean != -1
+
+  - id: G010
+    <<: *sentinel_conflict
+    name: TTL Forward Std Sentinel Consistency
+    scope: group
+    target_column: TTL Fwd Std
+    columns:
+      - TTL Fwd Std
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_fwd
+    expression: |
+      TTL Fwd Std != -1
+
+  - id: G011
+    <<: *sentinel_conflict
+    name: TTL Forward Min Sentinel Consistency
+    scope: group
+    target_column: TTL Fwd Min
+    columns:
+      - TTL Fwd Min
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_fwd
+    expression: |
+      TTL Fwd Min != -1
+
+  - id: G012
+    <<: *sentinel_conflict
+    name: TTL Forward Max Sentinel Consistency
+    scope: group
+    target_column: TTL Fwd Max
+    columns:
+      - TTL Fwd Max
+      - Total Fwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_fwd
+    expression: |
+      TTL Fwd Max != -1
+
+  - id: G013
+    <<: *sentinel_conflict
+    name: TTL Backward Mean Sentinel Consistency
+    scope: group
+    target_column: TTL Bwd Mean
+    columns:
+      - TTL Bwd Mean
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_bwd
+    expression: |
+      TTL Bwd Mean != -1
+
+  - id: G014
+    <<: *sentinel_conflict
+    name: TTL Backward Std Sentinel Consistency
+    scope: group
+    target_column: TTL Bwd Std
+    columns:
+      - TTL Bwd Std
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_bwd
+    expression: |
+      TTL Bwd Std != -1
+
+  - id: G015
+    <<: *sentinel_conflict
+    name: TTL Backward Min Sentinel Consistency
+    scope: group
+    target_column: TTL Bwd Min
+    columns:
+      - TTL Bwd Min
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_bwd
+    expression: |
+      TTL Bwd Min != -1
+
+  - id: G016
+    <<: *sentinel_conflict
+    name: TTL Backward Max Sentinel Consistency
+    scope: group
+    target_column: TTL Bwd Max
+    columns:
+      - TTL Bwd Max
+      - Total Bwd Packets
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_ttl_bwd
+    expression: |
+      TTL Bwd Max != -1
+
+  - id: G017
+    <<: *sentinel_conflict
+    name: Fragmentation Offset Mean Sentinel Consistency
+    scope: group
+    target_column: Fragmentation Offset Mean
+    columns:
+      - Fragmentation Offset Mean
+      - Fragmentation Count
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_fragmentation_offset
+    expression: |
+      Fragmentation Offset Mean != -1
+
+  - id: G018
+    <<: *sentinel_conflict
+    name: Fragmentation Offset Max Sentinel Consistency
+    scope: group
+    target_column: Fragmentation Offset Max
+    columns:
+      - Fragmentation Offset Max
+      - Fragmentation Count
+    sentinel:
+      sentinel_value:
+        value: -1
+        expression: *cond_fragmentation_offset
+    expression: |
+      Fragmentation Offset Max != -1
 
 
 non_repairable_column_related_rules:
@@ -202,5 +647,32 @@ non_repairable_column_related_rules:
   - R013
   - R014
   - R015
+  - G001
+  - G002
+  - G003
+  - G004
+  - G005
+  - G006
+  - G007
+  - G008
+  - G009
+  - G010
+  - G011
+  - G012
+  - G013
+  - G014
+  - G015
+  - G016
+  - G017
+  - G018
 
-repairable_column_related_rules: null
+repairable_column_related_rules:
+  - R016
+  - R017
+  - R018
+  - R019
+  - R020
+  - R021
+  - R022
+  - R023
+  - R024

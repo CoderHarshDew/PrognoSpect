@@ -503,3 +503,29 @@ Ground-truth labels will be reconstructed using the CICIDS2018 attack schedule, 
 Ambiguous labelling decisions will be handled using a strict reliability filter, with uncertain flows dropped rather than retained.
 
 Manual Wireshark-based verification and correction of attack windows was deferred to a later implementation phase.
+
+---
+
+## Ground-Truth Labelling Re-evaluation
+
+The CICIDS2018 attack schedule was investigated against the processed CSV datasets available through Kaggle and Hugging Face mirrors.
+
+It was found that the official attack schedule does not provide enough granularity to reliably reproduce the attack-label columns present in those processed datasets. The schedule groups several attacks under more general labels, while the processed datasets contain more specific attack categories.
+
+Further investigation led to the labelling approach described in *[This study](https://intrusion-detection.distrinet-research.be/CNS2022/index.html)*.
+
+The decision was made to implement this labelling approach for PrognoSpect so that the labels can be reconstructed using a more detailed and consistent methodology.
+
+---
+
+## Extraction Performance Optimisation
+
+Performance testing revealed significant processing delays on large PCAPs, with a single **4 GB PCAP taking several hours** to process.
+
+The main bottleneck was identified in the **cross-flow behavioural feature extractor**. Each observation was rescanning the entire active window for every feature, resulting in **O(W)** work per observation. The effective window size also increased during traffic bursts such as port scans and DoS activity, making the slowdown particularly severe during high-volume periods.
+
+Unnecessary deque copies were first removed.
+
+The feature extraction logic was then redesigned to maintain **incremental per-group state**, including running counts, entropy sums, and run-tracking information. These states are updated whenever observations are appended to or evicted from the window.
+
+This changed the cross-flow feature calculations from repeated full-window scans to **O(1) amortized work per observation**, substantially reducing the computational cost of processing large PCAPs.
