@@ -10,3 +10,4 @@ reports/
 third_party/
 logs/
 *.zip
+*.iml
