@@ -24,7 +24,7 @@ def _validate_numeric_series(series, validation):
     nan_count = 0
 
     if not validation['allow_negative']:
-        negative_mask = (series < 0) & (~ series.isin(sentinel))
+        negative_mask = ((series < 0) & (~ series.isin(sentinel))).fillna(False)
         invalid.update(np.flatnonzero(negative_mask))
         negative_count = int(negative_mask.sum())
 
@@ -40,7 +40,7 @@ def _validate_numeric_series(series, validation):
 
     maximum = validation['maximum'] if validation['maximum'] is not None else np.inf
 
-    out_of_range_mask = (~ series.between(validation['minimum'], maximum)) & (~ series.isin(sentinel))
+    out_of_range_mask = ((~ series.between(validation['minimum'], maximum)) & (~ series.isin(sentinel))).fillna(False)
     invalid.update(np.flatnonzero(out_of_range_mask))
     out_of_range_count = int(out_of_range_mask.sum())
 
@@ -117,44 +117,13 @@ def validate_schema(df, schema_cfg):
         raise
 
 
-def _resolve_rule_order(rules):
-    rules_by_id = {rule['id']: rule for rule in rules}
-    order = []
-    visited = set()
-    visiting = set()
-
-    def visit(rule):
-        rule_id = rule['id']
-
-        if rule_id in visited:
-            return
-
-        if rule_id in visiting:
-            raise ValueError(f"Circular dependency detected involving rule {rule_id}")
-
-        visiting.add(rule_id)
-
-        for dep_id in rule.get('depends_on', []):
-            if dep_id not in rules_by_id:
-                raise ValueError(f"Rule {rule_id} depends on unknown rule {dep_id}")
-
-            visit(rules_by_id[dep_id])
-
-        visiting.discard(rule_id)
-        visited.add(rule_id)
-        order.append(rule)
-
-    for rule in rules:
-        visit(rule)
-
-    return order
-
-
-def _evaluate_sentinel_rule(rule, context, index):
+def _evaluate_sentinel_rule(rule, context):
     sentinel_def = next(iter(rule['sentinel'].values()))
 
     condition_f = compile_expr(sentinel_def['expression'])
     applies = bind_var_and_evaluate(condition_f, **context)
+    if isinstance(applies, pd.Series):
+        applies = applies.fillna(False)
 
     normal_f = compile_expr(rule['expression'])
     normal_valid = bind_var_and_evaluate(normal_f, **context)
@@ -162,29 +131,8 @@ def _evaluate_sentinel_rule(rule, context, index):
     target_series = context[rule['target_column']]
     sentinel_valid = target_series == sentinel_def['value']
 
-    valid = pd.Series(np.where(applies, sentinel_valid, normal_valid), index=index)
-
-    return valid, None
-
-
-def _evaluate_repair_rule(rule, context, working_df):
-    repair_f = compile_expr(rule['repair_expression'])
-    expected = bind_var_and_evaluate(repair_f, **context)
-    expected = pd.Series(expected, index=working_df.index)
-
-    tolerance = rule.get('tolerance', 0.0)
-    actual = working_df[rule['target_column']]
-
-    valid = pd.Series(np.isclose(actual, expected, atol=tolerance, equal_nan=False), index=working_df.index)
-
-    return valid, expected
-
-
-def _evaluate_standard_rule(rule, context):
-    exp_f = compile_expr(rule['expression'])
-    valid = bind_var_and_evaluate(exp_f, **context)
-
-    return valid, None
+    valid = pd.Series(np.where(applies, sentinel_valid, normal_valid), index=target_series.index)
+    return valid.fillna(True)
 
 
 def validate_rules(df, rules_cfg):
@@ -193,65 +141,37 @@ def validate_rules(df, rules_cfg):
     try:
         rule_result = RuleResult()
 
-        if not hasattr(rule_result, 'rows_to_drop'):
-            rule_result.rows_to_drop = set()
-
-        if not hasattr(rule_result, 'repairs'):
-            rule_result.repairs = {}
-
-        working_df = df.copy()
-        ordered_rules = _resolve_rule_order(rules_cfg['rules'])
-
-        for rule in ordered_rules:
+        for rule in rules_cfg['rules']:
             rule_result.violator_counts[rule['id']] = 0
 
-            missing_columns = set(rule['columns']) - set(working_df.columns)
+            missing_columns = set(rule['columns']) - set(df.columns)
 
             if missing_columns:
                 logger.error("Rule '%s' references missing columns: %s", rule['id'], missing_columns)
                 raise ValueError(f"Rule {rule['id']} references missing columns: {missing_columns}")
 
-            context = {column: working_df[column] for column in rule['columns']}
+            context = {column: df[column] for column in rule['columns']}
 
             if rule['id'] == 'R015':
                 context['VALID_LABEL_SET'] = rules_cfg['VALID_LABEL_SET']
 
             if 'sentinel' in rule:
-                valid, expected = _evaluate_sentinel_rule(rule, context, working_df.index)
-            elif 'repair_expression' in rule:
-                valid, expected = _evaluate_repair_rule(rule, context, working_df)
+                valid = _evaluate_sentinel_rule(rule, context)
             else:
-                valid, expected = _evaluate_standard_rule(rule, context)
+                exp_f = compile_expr(rule['expression'])
+                valid = bind_var_and_evaluate(exp_f, **context)
 
             result = ~ valid
+            if isinstance(result, pd.Series):
+                result = result.fillna(False)
 
-            violator_idx = set(np.flatnonzero(result))
-
-            rule_result.violators[rule['id']] = violator_idx
+            rule_result.violators[rule['id']] = set(np.flatnonzero(result))
             rule_result.violator_counts[rule['id']] = result.sum()
 
             if rule_result.violator_counts[rule['id']] > 0:
-                logger.warning("Rule '%s' violated by %d rows. Columns=%s Expression='%s'", rule['id'], rule_result.violator_counts[rule['id']], rule['columns'], rule.get('expression') or rule.get('repair_expression'))
+                logger.warning("Rule '%s' violated by %d rows. Columns=%s Expression='%s'", rule['id'], rule_result.violator_counts[rule['id']], rule['columns'], rule['expression'])
 
-            scope = rule.get('scope', 'group')
-
-            if scope == 'group' and violator_idx:
-                rule_result.rows_to_drop.update(violator_idx)
-
-            elif scope == 'column' and violator_idx:
-                target_column = rule['target_column']
-                idx_labels = working_df.index[list(violator_idx)]
-
-                rule_result.repairs.setdefault(target_column, {})
-
-                for pos, label in zip(violator_idx, idx_labels):
-                    rule_result.repairs[target_column][pos] = expected.loc[label]
-
-                working_df.loc[idx_labels, target_column] = expected.loc[idx_labels]
-
-                logger.info("Rule '%s' repaired %d rows in column '%s'.", rule['id'], len(violator_idx), target_column)
-
-        logger.info("Rule validation completed. Total rule violations: %d | Rows to drop: %d | Columns repaired: %d", sum(rule_result.violator_counts.values()), len(rule_result.rows_to_drop), len(rule_result.repairs))
+        logger.info("Rule validation completed. Total rule violations: %d", sum(rule_result.violator_counts.values()))
 
         return rule_result
 

@@ -131,8 +131,6 @@ feature_groups:
       - Total Fwd Packets
       - Total Bwd Packets
       - act_data_pkt_fwd
-      - Subflow Fwd Packets
-      - Subflow Bwd Packets
 
   byte_counts:
     template: *non_negative_integer
@@ -143,6 +141,13 @@ feature_groups:
       - Fwd Header Length
       - Bwd Header Length
       - Fwd Header Length.1
+
+  subflow_averages:
+    template: *non_negative_float
+    unit: mixed
+    features:
+      - Subflow Fwd Packets
+      - Subflow Bwd Packets
       - Subflow Fwd Bytes
       - Subflow Bwd Bytes
 

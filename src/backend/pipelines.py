@@ -29,7 +29,7 @@ _config_paths = _global_cfg['config_paths']
 VALIDATION_SCHEMA_CFG_PATH = Path(_config_paths['validation_schema'])
 VALIDATION_RULES_CFG_PATH = Path(_config_paths['validation_rules'])
 CLEANING_CFG_PATH = Path(_config_paths['cleaning'])
-PIPELINE_CFG_PATH = Path(_config_paths['pipeline'])
+PREPROCESSING_CFG_PATH = Path(_config_paths['preprocessing'])
 REPORT_PATH = Path(_global_cfg['report_path'])
 
 PCAP_DATASET_PATH = Path(_global_cfg['pcap_dataset_path'])
@@ -57,28 +57,32 @@ CROSS_FLOW_FIELDNAMES = KEY_COLUMNS + CROSS_FLOW_COLUMNS
 
 
 def load_cleaning_configurations():
-    """Loads all configurations."""
-
-    logger.info("Loading preprocessing configurations.")
-
     try:
         schema_cfg = config_loader(VALIDATION_SCHEMA_CFG_PATH)
         rules_cfg = config_loader(VALIDATION_RULES_CFG_PATH)
         cleaning_cfg = config_loader(CLEANING_CFG_PATH)
-        pipeline_cfg = config_loader(PIPELINE_CFG_PATH)
-
+        preprocessing_cfg = config_loader(PREPROCESSING_CFG_PATH)
     except Exception:
         logger.error("Failed to load preprocessing configurations.")
         raise
 
-    logger.info("Preprocessing configurations loaded successfully.")
+    return schema_cfg, rules_cfg, cleaning_cfg, preprocessing_cfg
 
-    return schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg
+
+def _sort_files_chronologically(files: list[str]) -> list[str]:
+    def day_key(file):
+        match = DAY_PATTERN.search(file)
+
+        if match is None:
+            logger.error("Could not find a dd-mm-yyyy date in file name: %s", file)
+            raise ValueError(f'File name has no dd-mm-yyyy date: {file}')
+
+        return datetime.strptime(match.group(0), DAY_FORMAT)
+
+    return sorted(files, key=day_key)
 
 
 def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), output_path: str | Path = Path('../../dataset/cleaned/cleaned_dataset.parquet')):
-
-    """Cleans the raw dataset and stores the result as a Parquet file."""
 
     raw_dataset_path = Path(raw_dataset_path)
     output_path = Path(output_path)
@@ -102,6 +106,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
     output_path.parent.mkdir(exist_ok=True, parents=True)
 
     raw_dataset_files = os.listdir(raw_dataset_path)
+    raw_dataset_files = _sort_files_chronologically(raw_dataset_files)
 
     if not raw_dataset_files:
         logger.error("No dataset files found in raw dataset directory: %s", raw_dataset_path)
@@ -119,15 +124,17 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
     writer = None
 
     try:
-        schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg = load_cleaning_configurations()
+        schema_cfg, rules_cfg, cleaning_cfg, preprocessing_cfg = load_cleaning_configurations()
 
-        if not all([schema_cfg, rules_cfg, cleaning_cfg, pipeline_cfg]):
+        if not all([schema_cfg, rules_cfg, cleaning_cfg, preprocessing_cfg]):
             logger.error("One or more preprocessing configurations are empty or failed to load.")
             raise Exception('Error loading configurations, check logs for more details.')
 
         dtype_map = {}
 
-        expected_columns = schema_cfg['numeric_col'] + schema_cfg['non_numeric_col']
+        numeric_col = [feature for feature_group in schema_cfg['feature_groups'].values() for feature in feature_group['features']]
+
+        expected_columns = numeric_col + schema_cfg['non_numeric_col']
 
         logger.debug("Expected output columns: %s", expected_columns)
 
@@ -137,8 +144,8 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
             for feature in feature_group['features']:
                 dtype_map[feature] = dtype
 
-        for feature, config in schema_cfg['features'].items():
-            dtype_map[feature] = config['dtype']
+        for feature, feature_def in schema_cfg['non_numeric_features'].items():
+            dtype_map[feature] = feature_def['dtype']
 
         logger.info("Constructed dtype map for %d column(s).", len(dtype_map))
         logger.debug("Dtype map: %s", dtype_map)
@@ -206,7 +213,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 logger.debug("Dtype conversion completed for chunk %d of %s.", chunk_number, file)
                 logger.debug("Chunk %d dtypes: %s", chunk_number, chunk.dtypes.to_dict())
 
-                cycles = pipeline_cfg['cycles']
+                cycles = preprocessing_cfg['cycles']
 
                 logger.debug("Running %d validation/cleaning cycle(s) for chunk %d of %s.", cycles, chunk_number, file)
 
@@ -234,7 +241,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                     logger.debug("Cleaning cycle %d/%d completed for chunk %d of %s. Rows: %d -> %d | Removed: %d", cycle, cycles, chunk_number, file, rows_before_cleaning, rows_after_cleaning, rows_before_cleaning - rows_after_cleaning)
 
                 try:
-                    if pipeline_cfg['generate_report']:
+                    if preprocessing_cfg['generate_report']:
                         curr_report_path = Path(REPORT_PATH, file)
                         curr_report_path.mkdir(parents=True, exist_ok=True)
 

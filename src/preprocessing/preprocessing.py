@@ -39,6 +39,6 @@ class PreprocessingPipeline:
         return self.validation_result[f"validation_result_{len(self.validation_result)}"], self.rules_result[f'rules_result_{len(self.rules_result)}'], self.schema_result[f"schema_result_{len(self.schema_result)}"]
 
     def clean(self, df: pd.DataFrame):
-        df_cleaned = clean(self.validation_result[f"validation_result_{len(self.validation_result)}"], df, self.cleaning_cfg)
+        df_cleaned = clean(self.validation_result[f"validation_result_{len(self.validation_result)}"], df, self.cleaning_cfg, self.rules_result[f"rules_result_{len(self.rules_result)}"], self.rules_cfg)
         logger.info('Cleaned the dataset.')
         return df_cleaned

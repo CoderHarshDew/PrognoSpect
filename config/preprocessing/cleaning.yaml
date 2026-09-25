@@ -1,5 +1,3 @@
-version: 1.0
-
 settings:
 
   generate_report: true
@@ -13,113 +11,204 @@ formulas:
 
     expression: >
       (
-        TotLen Fwd Pkts +
-        TotLen Bwd Pkts
+        Total Length of Fwd Packets +
+        Total Length of Bwd Packets
       ) /
       (
         Flow Duration / 1000000
       )
 
     requires:
-      - TotLen Fwd Pkts
-      - TotLen Bwd Pkts
+      - Total Length of Fwd Packets
+      - Total Length of Bwd Packets
       - Flow Duration
 
   flow_packets_per_second:
 
     expression: >
       (
-        Tot Fwd Pkts +
-        Tot Bwd Pkts
+        Total Fwd Packets +
+        Total Bwd Packets
       ) /
       (
         Flow Duration / 1000000
       )
 
     requires:
-      - Tot Fwd Pkts
-      - Tot Bwd Pkts
+      - Total Fwd Packets
+      - Total Bwd Packets
       - Flow Duration
+
+  fwd_packets_per_second:
+
+    expression: >
+      Total Fwd Packets /
+      (
+        Flow Duration / 1000000
+      )
+
+    requires:
+      - Total Fwd Packets
+      - Flow Duration
+
+  bwd_packets_per_second:
+
+    expression: >
+      Total Bwd Packets /
+      (
+        Flow Duration / 1000000
+      )
+
+    requires:
+      - Total Bwd Packets
+      - Flow Duration
+
+  avg_fwd_segment_size:
+
+    expression: >
+      Total Length of Fwd Packets /
+      Total Fwd Packets
+
+    requires:
+      - Total Length of Fwd Packets
+      - Total Fwd Packets
+
+  avg_bwd_segment_size:
+
+    expression: >
+      Total Length of Bwd Packets /
+      Total Bwd Packets
+
+    requires:
+      - Total Length of Bwd Packets
+      - Total Bwd Packets
+
+  down_up_ratio:
+
+    expression: >
+      Total Bwd Packets /
+      Total Fwd Packets
+
+    requires:
+      - Total Bwd Packets
+      - Total Fwd Packets
+
+  packet_length_variance:
+
+    expression: >
+      Packet Length Std ** 2
+
+    requires:
+      - Packet Length Std
+
+  fwd_header_length_duplicate:
+
+    expression: >
+      Fwd Header Length
+
+    requires:
+      - Fwd Header Length
 
 
 repairable:
 
-  Flow Byts/s:
+  Flow Bytes/s:
     formula: flow_bytes_per_second
 
-  Flow Pkts/s:
+  Flow Packets/s:
     formula: flow_packets_per_second
+
+  Fwd Packets/s:
+    formula: fwd_packets_per_second
+
+  Bwd Packets/s:
+    formula: bwd_packets_per_second
+
+  Avg Fwd Segment Size:
+    formula: avg_fwd_segment_size
+
+  Avg Bwd Segment Size:
+    formula: avg_bwd_segment_size
+
+  Down/Up Ratio:
+    formula: down_up_ratio
+
+  Packet Length Variance:
+    formula: packet_length_variance
+
+  Fwd Header Length.1:
+    formula: fwd_header_length_duplicate
 
 
 non_repairable:
 
-  - Dst Port
+  - Destination Port
   - Protocol
   - Timestamp
   - Flow Duration
 
-  - Tot Fwd Pkts
-  - Tot Bwd Pkts
+  - Total Fwd Packets
+  - Total Bwd Packets
 
-  - TotLen Fwd Pkts
-  - TotLen Bwd Pkts
+  - Total Length of Fwd Packets
+  - Total Length of Bwd Packets
 
-  - Fwd Pkt Len Max
-  - Fwd Pkt Len Min
-  - Fwd Pkt Len Mean
-  - Fwd Pkt Len Std
+  - Fwd Packet Length Max
+  - Fwd Packet Length Min
+  - Fwd Packet Length Mean
+  - Fwd Packet Length Std
 
-  - Bwd Pkt Len Max
-  - Bwd Pkt Len Min
-  - Bwd Pkt Len Mean
-  - Bwd Pkt Len Std
+  - Bwd Packet Length Max
+  - Bwd Packet Length Min
+  - Bwd Packet Length Mean
+  - Bwd Packet Length Std
 
   - Flow IAT Mean
   - Flow IAT Std
   - Flow IAT Max
   - Flow IAT Min
 
-  - Fwd IAT Tot
+  - Fwd IAT Total
   - Fwd IAT Mean
   - Fwd IAT Std
   - Fwd IAT Max
   - Fwd IAT Min
 
-  - Bwd IAT Tot
+  - Bwd IAT Total
   - Bwd IAT Mean
   - Bwd IAT Std
   - Bwd IAT Max
   - Bwd IAT Min
 
-  - Fwd Header Len
-  - Bwd Header Len
+  - Fwd Header Length
+  - Bwd Header Length
 
-  - Fwd Pkts/s
-  - Bwd Pkts/s
+  - Packet Length Min
+  - Packet Length Max
+  - Packet Length Mean
+  - Packet Length Std
 
-  - Pkt Len Min
-  - Pkt Len Max
-  - Pkt Len Mean
-  - Pkt Len Std
-  - Pkt Len Var
+  - FIN Flag Count
+  - SYN Flag Count
+  - RST Flag Count
+  - PSH Flag Count
+  - ACK Flag Count
+  - URG Flag Count
+  - ECE Flag Count
+  - CWE Flag Count
 
-  - FIN Flag Cnt
-  - SYN Flag Cnt
-  - RST Flag Cnt
-  - PSH Flag Cnt
-  - ACK Flag Cnt
-  - URG Flag Cnt
-  - ECE Flag Cnt
+  - Fwd PSH Flags
+  - Bwd PSH Flags
+  - Fwd URG Flags
+  - Bwd URG Flags
 
-  - Down/Up Ratio
+  - Average Packet Size
 
-  - Pkt Size Avg
+  - Init_Win_bytes_forward
+  - Init_Win_bytes_backward
 
-  - Init Fwd Win Byts
-  - Init Bwd Win Byts
-
-  - Fwd Act Data Pkts
-  - Fwd Seg Size Min
+  - act_data_pkt_fwd
+  - min_seg_size_forward
 
   - Active Mean
   - Active Std
@@ -131,26 +220,57 @@ non_repairable:
   - Idle Max
   - Idle Min
 
+  - Fwd Avg Bytes/Bulk
+  - Fwd Avg Packets/Bulk
+  - Fwd Avg Bulk Rate
+  - Bwd Avg Bytes/Bulk
+  - Bwd Avg Packets/Bulk
+  - Bwd Avg Bulk Rate
+
+  - Subflow Fwd Packets
+  - Subflow Bwd Packets
+  - Subflow Fwd Bytes
+  - Subflow Bwd Bytes
+
+  - dst_port_unique_cnt
+  - dst_port_scan_rate
+  - dst_port_sequentiality
+  - dst_port_entropy
+  - src_dst_pair_flow_rate
+
+  - TTL Fwd Mean
+  - TTL Fwd Std
+  - TTL Fwd Min
+  - TTL Fwd Max
+  - TTL Bwd Mean
+  - TTL Bwd Std
+  - TTL Bwd Min
+  - TTL Bwd Max
+
+  - TCP Window Fwd Mean
+  - TCP Window Fwd Std
+  - TCP Window Fwd Min
+  - TCP Window Fwd Max
+  - TCP Window Bwd Mean
+  - TCP Window Bwd Std
+  - TCP Window Bwd Min
+  - TCP Window Bwd Max
+
+  - Fragmentation Count
+  - Fragmentation Offset Mean
+  - Fragmentation Offset Max
+
+  - Payload Mean
+  - Payload Std
+  - Payload Min
+  - Payload Max
+  - Payload Median
+  - Payload P25
+  - Payload P75
+
+  - Retransmission Count
+
   - Label
 
 
-columns_to_drop:
-
-  - Bwd PSH Flags
-  - Fwd URG Flags
-  - Bwd URG Flags
-  - CWE Flag Count
-
-  - Fwd Byts/b Avg
-  - Fwd Pkts/b Avg
-  - Fwd Blk Rate Avg
-
-  - Bwd Byts/b Avg
-  - Bwd Pkts/b Avg
-  - Bwd Blk Rate Avg
-
-  - Subflow Fwd Pkts
-  - Subflow Bwd Pkts
-  - Subflow Fwd Byts
-  - Fwd Seg Size Avg
-  - Bwd Seg Size Avg
+columns_to_drop: []

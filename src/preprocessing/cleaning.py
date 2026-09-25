@@ -1,6 +1,6 @@
 import pandas as pd
 from src.core.evaluator import bind_var_and_evaluate, compile_expr
-from src.preprocessing.result import ValidationResult
+from src.preprocessing.result import ValidationResult, RuleResult
 from src.core.logger import logger
 
 
@@ -52,12 +52,25 @@ def initial_cleanup(df: pd.DataFrame, cleaning_cfg: dict, schema_cfg: dict):
 
     return df
 
-def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: dict) -> pd.DataFrame:
+
+def _build_target_column_rule_index(rules_cfg):
+    col_to_rule = {}
+
+    for rule in rules_cfg['rules']:
+        if rule['id'] in rules_cfg['repairable_column_related_rules']:
+            col_to_rule[rule['target_column']] = rule['id']
+
+    return col_to_rule
+
+
+def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: dict, rule_result: RuleResult, rules_cfg: dict) -> pd.DataFrame:
     """Cleans a DataFrame based on preprocessing result and a cleaning configuration.
 
     :param validation_result: Validation result of DataFrame, detailing invalid entries to clean.
     :param df: The DataFrame to clean.
     :param cleaning_cfg: The configuration file defining cleaning rules.
+    :param rule_result: Rule validation result, used to identify which rows violated each repairable column's rule.
+    :param rules_cfg: The rule configuration file, used to map repairable columns to their governing rule.
     :return: Cleaned DataFrame
     """
 
@@ -65,6 +78,8 @@ def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: d
 
     df2 = df.drop(index=validation_result.non_repairable)
     logger.info('Dropped non repairable invalid data from the dataset.')
+
+    col_to_rule = _build_target_column_rule_index(rules_cfg)
 
     for col in cleaning_cfg['repairable']:
         logger.debug("Began computing repairable column %s of Dataset.", col)
@@ -83,7 +98,13 @@ def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: d
             for col in formula['requires']
         }
 
-        rows = list(validation_result.repairable)
+        rule_id = col_to_rule.get(col)
+
+        if rule_id is None:
+            logger.error("Repairable column %s has no matching rule with a target_column in rules_cfg.", col)
+            raise ValueError(f"Repairable column {col} has no matching rule in rules_cfg.")
+
+        rows = list(rule_result.violators[rule_id] & validation_result.repairable)
 
         result = bind_var_and_evaluate(expr, **context)
         df2.loc[rows, col] = result.loc[rows]
@@ -93,6 +114,7 @@ def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: d
     logger.info("Clean completed. Output rows: %d", len(df2))
 
     return df2
+
 
 if __name__ == "__main__":
     pass

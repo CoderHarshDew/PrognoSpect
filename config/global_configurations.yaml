@@ -15,7 +15,7 @@ config_paths:
   validation_schema: !!str "config/preprocessing/validation_schema.yaml"
   validation_rules: !!str "config/preprocessing/validation_rules.yaml"
   cleaning: !!str "config/preprocessing/cleaning.yaml"
-  pipeline: !!str "config/preprocessing/pipeline.yaml"
+  preprocessing: !!str "config/preprocessing/preprocessing.yaml"
   labeling_schedule: !!str "config/extraction/schedule.yaml"
   flow_extraction: !!str "config/extraction/flow_extraction.yaml"
   flow_packet_joiner: !!str "config/extraction/flow_packet_joiner.yaml"
