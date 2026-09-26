@@ -1,3 +1,5 @@
+version: 3.0
+
 templates:
 
   error: &error
@@ -34,9 +36,6 @@ sentinel_condition:
 
   ttl_bwd_na: &cond_ttl_bwd |
     Total Bwd Packets == 0
-
-  fragmentation_offset_na: &cond_fragmentation_offset |
-    Fragmentation Count == 0
 
 
 VALID_LABEL_SET:
@@ -257,36 +256,6 @@ rules:
       <=
       Total Bwd Packets / (Flow Duration / 1000000) + 0.000001
 
-  - id: R020
-    <<: *error
-    name: Average Forward Segment Size Consistency
-    target_column: Avg Fwd Segment Size
-    columns:
-      - Avg Fwd Segment Size
-      - Total Length of Fwd Packets
-      - Total Fwd Packets
-    expression: |
-      Total Length of Fwd Packets / Total Fwd Packets - 0.000001
-      <=
-      Avg Fwd Segment Size
-      <=
-      Total Length of Fwd Packets / Total Fwd Packets + 0.000001
-
-  - id: R021
-    <<: *error
-    name: Average Backward Segment Size Consistency
-    target_column: Avg Bwd Segment Size
-    columns:
-      - Avg Bwd Segment Size
-      - Total Length of Bwd Packets
-      - Total Bwd Packets
-    expression: |
-      Total Length of Bwd Packets / Total Bwd Packets - 0.000001
-      <=
-      Avg Bwd Segment Size
-      <=
-      Total Length of Bwd Packets / Total Bwd Packets + 0.000001
-
   - id: R022
     <<: *error
     name: Down Up Ratio Consistency
@@ -316,15 +285,111 @@ rules:
       <=
       Packet Length Std ** 2 + 0.000001
 
-  - id: R024
+  - id: R025
     <<: *error
-    name: Forward Header Length Duplicate Consistency
-    target_column: Fwd Header Length.1
+    name: TCP Window Forward Mean Sign Overflow Check
+    target_column: TCP Window Fwd Mean
     columns:
-      - Fwd Header Length.1
-      - Fwd Header Length
+      - TCP Window Fwd Mean
     expression: |
-      Fwd Header Length.1 == Fwd Header Length
+      TCP Window Fwd Mean == -1
+      OR
+      TCP Window Fwd Mean >= 0
+
+  - id: R026
+    <<: *error
+    name: TCP Window Forward Std Sign Overflow Check
+    target_column: TCP Window Fwd Std
+    columns:
+      - TCP Window Fwd Std
+    expression: |
+      TCP Window Fwd Std == -1
+      OR
+      TCP Window Fwd Std >= 0
+
+  - id: R027
+    <<: *error
+    name: TCP Window Forward Min Sign Overflow Check
+    target_column: TCP Window Fwd Min
+    columns:
+      - TCP Window Fwd Min
+    expression: |
+      TCP Window Fwd Min == -1
+      OR
+      TCP Window Fwd Min >= 0
+
+  - id: R028
+    <<: *error
+    name: TCP Window Forward Max Sign Overflow Check
+    target_column: TCP Window Fwd Max
+    columns:
+      - TCP Window Fwd Max
+    expression: |
+      TCP Window Fwd Max == -1
+      OR
+      TCP Window Fwd Max >= 0
+
+  - id: R029
+    <<: *error
+    name: TCP Window Backward Mean Sign Overflow Check
+    target_column: TCP Window Bwd Mean
+    columns:
+      - TCP Window Bwd Mean
+    expression: |
+      TCP Window Bwd Mean == -1
+      OR
+      TCP Window Bwd Mean >= 0
+
+  - id: R030
+    <<: *error
+    name: TCP Window Backward Std Sign Overflow Check
+    target_column: TCP Window Bwd Std
+    columns:
+      - TCP Window Bwd Std
+    expression: |
+      TCP Window Bwd Std == -1
+      OR
+      TCP Window Bwd Std >= 0
+
+  - id: R031
+    <<: *error
+    name: TCP Window Backward Min Sign Overflow Check
+    target_column: TCP Window Bwd Min
+    columns:
+      - TCP Window Bwd Min
+    expression: |
+      TCP Window Bwd Min == -1
+      OR
+      TCP Window Bwd Min >= 0
+
+  - id: R032
+    <<: *error
+    name: TCP Window Backward Max Sign Overflow Check
+    target_column: TCP Window Bwd Max
+    columns:
+      - TCP Window Bwd Max
+    expression: |
+      TCP Window Bwd Max == -1
+      OR
+      TCP Window Bwd Max >= 0
+
+  - id: R033
+    <<: *error
+    name: Payload Min Sentinel Correction Needed
+    target_column: Payload Min
+    columns:
+      - Payload Min
+    expression: |
+      Payload Min != -1
+
+  - id: R034
+    <<: *error
+    name: Payload P25 Sentinel Correction Needed
+    target_column: Payload P25
+    columns:
+      - Payload P25
+    expression: |
+      Payload P25 != -1
 
   - id: G001
     <<: *sentinel_conflict
@@ -558,34 +623,6 @@ rules:
     expression: |
       TTL Bwd Max != -1
 
-  - id: G017
-    <<: *sentinel_conflict
-    name: Fragmentation Offset Mean Sentinel Consistency
-    target_column: Fragmentation Offset Mean
-    columns:
-      - Fragmentation Offset Mean
-      - Fragmentation Count
-    sentinel:
-      sentinel_value:
-        value: -1
-        expression: *cond_fragmentation_offset
-    expression: |
-      Fragmentation Offset Mean != -1
-
-  - id: G018
-    <<: *sentinel_conflict
-    name: Fragmentation Offset Max Sentinel Consistency
-    target_column: Fragmentation Offset Max
-    columns:
-      - Fragmentation Offset Max
-      - Fragmentation Count
-    sentinel:
-      sentinel_value:
-        value: -1
-        expression: *cond_fragmentation_offset
-    expression: |
-      Fragmentation Offset Max != -1
-
 
 non_repairable_column_related_rules:
   - R001
@@ -618,16 +655,21 @@ non_repairable_column_related_rules:
   - G014
   - G015
   - G016
-  - G017
-  - G018
 
 repairable_column_related_rules:
   - R016
   - R017
   - R018
   - R019
-  - R020
-  - R021
   - R022
   - R023
-  - R024
+  - R025
+  - R026
+  - R027
+  - R028
+  - R029
+  - R030
+  - R031
+  - R032
+  - R033
+  - R034

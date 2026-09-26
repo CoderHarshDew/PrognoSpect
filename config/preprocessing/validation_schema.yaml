@@ -131,6 +131,8 @@ feature_groups:
       - Total Fwd Packets
       - Total Bwd Packets
       - act_data_pkt_fwd
+      - Subflow Fwd Packets
+      - Subflow Bwd Packets
 
   byte_counts:
     template: *non_negative_integer
@@ -140,14 +142,6 @@ feature_groups:
       - Total Length of Bwd Packets
       - Fwd Header Length
       - Bwd Header Length
-      - Fwd Header Length.1
-
-  subflow_averages:
-    template: *non_negative_float
-    unit: mixed
-    features:
-      - Subflow Fwd Packets
-      - Subflow Bwd Packets
       - Subflow Fwd Bytes
       - Subflow Bwd Bytes
 
@@ -200,9 +194,6 @@ feature_groups:
       - Packet Length Max
       - Packet Length Mean
       - Packet Length Std
-      - Average Packet Size
-      - Avg Fwd Segment Size
-      - Avg Bwd Segment Size
 
   packet_length_variance:
     template: *packet_length_variance
@@ -322,19 +313,6 @@ feature_groups:
       - TCP Window Bwd Min
       - TCP Window Bwd Max
 
-  fragmentation_count:
-    template: *non_negative_integer
-    unit: count
-    features:
-      - Fragmentation Count
-
-  fragmentation_offset:
-    template: *tcp_window_float
-    unit: byte
-    features:
-      - Fragmentation Offset Mean
-      - Fragmentation Offset Max
-
   payload_statistics:
     template: *packet_length
     unit: byte
@@ -350,7 +328,6 @@ feature_groups:
     unit: byte
     features:
       - Payload Min
-      - Payload Max
 
   retransmission:
     template: *non_negative_integer

@@ -1,3 +1,5 @@
+version: 2.0
+
 settings:
 
   generate_report: true
@@ -63,26 +65,6 @@ formulas:
       - Total Bwd Packets
       - Flow Duration
 
-  avg_fwd_segment_size:
-
-    expression: >
-      Total Length of Fwd Packets /
-      Total Fwd Packets
-
-    requires:
-      - Total Length of Fwd Packets
-      - Total Fwd Packets
-
-  avg_bwd_segment_size:
-
-    expression: >
-      Total Length of Bwd Packets /
-      Total Bwd Packets
-
-    requires:
-      - Total Length of Bwd Packets
-      - Total Bwd Packets
-
   down_up_ratio:
 
     expression: >
@@ -101,13 +83,85 @@ formulas:
     requires:
       - Packet Length Std
 
-  fwd_header_length_duplicate:
+  tcp_window_fwd_mean_sign_correction:
 
     expression: >
-      Fwd Header Length
+      TCP Window Fwd Mean + 65536
 
     requires:
-      - Fwd Header Length
+      - TCP Window Fwd Mean
+
+  tcp_window_fwd_std_sign_correction:
+
+    expression: >
+      TCP Window Fwd Std + 65536
+
+    requires:
+      - TCP Window Fwd Std
+
+  tcp_window_fwd_min_sign_correction:
+
+    expression: >
+      TCP Window Fwd Min + 65536
+
+    requires:
+      - TCP Window Fwd Min
+
+  tcp_window_fwd_max_sign_correction:
+
+    expression: >
+      TCP Window Fwd Max + 65536
+
+    requires:
+      - TCP Window Fwd Max
+
+  tcp_window_bwd_mean_sign_correction:
+
+    expression: >
+      TCP Window Bwd Mean + 65536
+
+    requires:
+      - TCP Window Bwd Mean
+
+  tcp_window_bwd_std_sign_correction:
+
+    expression: >
+      TCP Window Bwd Std + 65536
+
+    requires:
+      - TCP Window Bwd Std
+
+  tcp_window_bwd_min_sign_correction:
+
+    expression: >
+      TCP Window Bwd Min + 65536
+
+    requires:
+      - TCP Window Bwd Min
+
+  tcp_window_bwd_max_sign_correction:
+
+    expression: >
+      TCP Window Bwd Max + 65536
+
+    requires:
+      - TCP Window Bwd Max
+
+  payload_min_sentinel_zero:
+
+    expression: >
+      Payload Min * 0
+
+    requires:
+      - Payload Min
+
+  payload_p25_sentinel_zero:
+
+    expression: >
+      Payload P25 * 0
+
+    requires:
+      - Payload P25
 
 
 repairable:
@@ -124,20 +178,41 @@ repairable:
   Bwd Packets/s:
     formula: bwd_packets_per_second
 
-  Avg Fwd Segment Size:
-    formula: avg_fwd_segment_size
-
-  Avg Bwd Segment Size:
-    formula: avg_bwd_segment_size
-
   Down/Up Ratio:
     formula: down_up_ratio
 
   Packet Length Variance:
     formula: packet_length_variance
 
-  Fwd Header Length.1:
-    formula: fwd_header_length_duplicate
+  TCP Window Fwd Mean:
+    formula: tcp_window_fwd_mean_sign_correction
+
+  TCP Window Fwd Std:
+    formula: tcp_window_fwd_std_sign_correction
+
+  TCP Window Fwd Min:
+    formula: tcp_window_fwd_min_sign_correction
+
+  TCP Window Fwd Max:
+    formula: tcp_window_fwd_max_sign_correction
+
+  TCP Window Bwd Mean:
+    formula: tcp_window_bwd_mean_sign_correction
+
+  TCP Window Bwd Std:
+    formula: tcp_window_bwd_std_sign_correction
+
+  TCP Window Bwd Min:
+    formula: tcp_window_bwd_min_sign_correction
+
+  TCP Window Bwd Max:
+    formula: tcp_window_bwd_max_sign_correction
+
+  Payload Min:
+    formula: payload_min_sentinel_zero
+
+  Payload P25:
+    formula: payload_p25_sentinel_zero
 
 
 non_repairable:
@@ -202,8 +277,6 @@ non_repairable:
   - Fwd URG Flags
   - Bwd URG Flags
 
-  - Average Packet Size
-
   - Init_Win_bytes_forward
   - Init_Win_bytes_backward
 
@@ -247,25 +320,9 @@ non_repairable:
   - TTL Bwd Min
   - TTL Bwd Max
 
-  - TCP Window Fwd Mean
-  - TCP Window Fwd Std
-  - TCP Window Fwd Min
-  - TCP Window Fwd Max
-  - TCP Window Bwd Mean
-  - TCP Window Bwd Std
-  - TCP Window Bwd Min
-  - TCP Window Bwd Max
-
-  - Fragmentation Count
-  - Fragmentation Offset Mean
-  - Fragmentation Offset Max
-
   - Payload Mean
   - Payload Std
-  - Payload Min
-  - Payload Max
   - Payload Median
-  - Payload P25
   - Payload P75
 
   - Retransmission Count
@@ -273,4 +330,12 @@ non_repairable:
   - Label
 
 
-columns_to_drop: []
+columns_to_drop:
+  - Fragmentation Count
+  - Fragmentation Offset Mean
+  - Fragmentation Offset Max
+  - Avg Fwd Segment Size
+  - Avg Bwd Segment Size
+  - Fwd Header Length.1
+  - Payload Max
+  - Average Packet Size
