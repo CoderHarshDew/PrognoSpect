@@ -1,6 +1,7 @@
 # Imports
 
 import operator
+from functools import lru_cache
 from typing import Any
 import pandas as pd
 from src.core.logger import logger
@@ -261,7 +262,12 @@ def evaluate(l: list):
                 logger.error('Malformed expression: NOT missing operand.')
                 raise ValueError("Malformed expression: NOT missing operand.")
 
-            stack.append(not bool(stack.pop()))
+            operand = stack.pop()
+
+            if isinstance(operand, pd.Series):
+                stack.append(~operand)
+            else:
+                stack.append(not bool(operand))
 
         elif token_str in operations:
 
@@ -292,6 +298,7 @@ def evaluate(l: list):
     return stack[0]
 
 
+@lru_cache(maxsize=None)
 def compile_expr(exp: str):
     """This function compiles a str expression into a postfix list expression.
 

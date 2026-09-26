@@ -17,32 +17,35 @@ def _build_column_group_index(feature_groups):
 
 def _validate_numeric_series(series, validation):
     sentinel = validation.get('sentinel', [])
-    invalid = set()
 
     negative_count = 0
     inf_count = 0
     nan_count = 0
 
+    invalid_mask = np.zeros(len(series), dtype=bool)
+
     if not validation['allow_negative']:
         negative_mask = ((series < 0) & (~ series.isin(sentinel))).fillna(False)
-        invalid.update(np.flatnonzero(negative_mask))
+        invalid_mask |= negative_mask.to_numpy()
         negative_count = int(negative_mask.sum())
 
     if not validation['allow_inf']:
         inf_mask = series.isin([np.inf, -np.inf])
-        invalid.update(np.flatnonzero(inf_mask))
+        invalid_mask |= inf_mask.to_numpy()
         inf_count = int(inf_mask.sum())
 
     if not validation['allow_nan']:
         nan_mask = series.isnull()
-        invalid.update(np.flatnonzero(nan_mask))
+        invalid_mask |= nan_mask.to_numpy()
         nan_count = int(nan_mask.sum())
 
     maximum = validation['maximum'] if validation['maximum'] is not None else np.inf
 
     out_of_range_mask = ((~ series.between(validation['minimum'], maximum)) & (~ series.isin(sentinel))).fillna(False)
-    invalid.update(np.flatnonzero(out_of_range_mask))
+    invalid_mask |= out_of_range_mask.to_numpy()
     out_of_range_count = int(out_of_range_mask.sum())
+
+    invalid = set(np.flatnonzero(invalid_mask))
 
     return invalid, negative_count, inf_count, nan_count, out_of_range_count
 

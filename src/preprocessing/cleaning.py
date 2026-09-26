@@ -28,9 +28,9 @@ def initial_cleanup(df: pd.DataFrame, cleaning_cfg: dict, schema_cfg: dict):
 
     logger.debug("Dropped %d configured column(s): %s", len(cleaning_cfg['columns_to_drop']), cleaning_cfg['columns_to_drop'])
 
-    header = df.columns
+    first_col = df.columns[0]
 
-    header_rows = (df.astype(str) == header).all(axis=1)
+    header_rows = df[first_col].astype(str) == first_col
 
     rows_before_header_drop = len(df)
     df = df.loc[~header_rows].copy()
@@ -106,10 +106,17 @@ def clean(validation_result: ValidationResult, df: pd.DataFrame, cleaning_cfg: d
 
         rows = list(rule_result.violators[rule_id] & validation_result.repairable)
 
-        result = bind_var_and_evaluate(expr, **context)
-        df2.loc[rows, col] = result.loc[rows]
+        row_context = {
+            required_col: series.loc[rows]
+            for required_col, series in context.items()
+        }
+
+        result = bind_var_and_evaluate(expr, **row_context)
+        df2.loc[rows, col] = result
 
         logger.debug("Repaired %d row(s) in column %s.", len(rows), col)
+
+    df2 = df2.reset_index(drop=True)
 
     logger.info("Clean completed. Output rows: %d", len(df2))
 
