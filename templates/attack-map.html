@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Attack Map — PrognoSpect</title><link rel="stylesheet" href="css/style.css"></head>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Attack Map — PrognoSpect</title><link rel="stylesheet" href="../static/css/style.css"></head>
 <body class="app-body">
 <header class="topbar">
   <a class="brand" href="dashboard.html">
-    <img src="assets/logo.png" alt="PrognoSpect logo">
+    <img src="../assets/logo.png" alt="PrognoSpect logo">
     <span><b>PROGNOSPECT</b><small>Predictive Cyber Defence</small></span>
   </a>
   <div class="topbar-meta">
@@ -55,4 +55,4 @@
 </svg><div class="map-legend"><span><i class="blue-dot"></i> Host</span><span><i class="red-dot"></i> Suspicious</span><span><i class="threat-line"></i> Predicted attack path</span></div></div></article>
 <aside class="map-side"><article class="panel"><div class="panel-head"><div><span class="panel-kicker">SELECTED NODE</span><h2>Host-12</h2></div><span class="status danger">HIGH</span></div><div class="host-profile"><div class="profile-row"><span>IP Address</span><b>192.168.1.20</b></div><div class="profile-row"><span>Risk Score</span><b class="danger">78</b></div><div class="profile-row"><span>Current State</span><b>Discovery</b></div><div class="profile-row"><span>Predicted</span><b class="cyan">Lateral Movement</b></div><div class="profile-row"><span>Connections</span><b>17</b></div></div></article>
 <article class="panel"><div class="panel-head"><div><span class="panel-kicker">ATTACK PATH</span><h2>Observed → Predicted</h2></div></div><ol class="path-list"><li><span>1</span> Host-07 <small>Initial Access</small></li><li><span>2</span> Host-12 <small>Discovery · Current</small></li><li class="active"><span>3</span> Data Server <small>Lateral Movement · K+1</small></li><li><span>4</span> Database <small>Exfiltration · K+2</small></li></ol></article></aside>
-</section></main><script src="js/app.js"></script></body></html>
+</section></main><script src="../static/js/app.js"></script></body></html>
