@@ -56,12 +56,16 @@ def _validate_non_numeric_series(df, col, col_def):
     nan_count = 0
 
     if 'format' in col_def:
-        parsed = pd.to_datetime(df[col], format=col_def['format'], errors='coerce')
+        formats = col_def['format'] if isinstance(col_def['format'], list) else [col_def['format']]
+
+        unparsed_mask = pd.Series(True, index=df[col].index)
+        for fmt in formats:
+            parsed = pd.to_datetime(df[col], format=fmt, errors='coerce')
+            unparsed_mask &= parsed.isnull()
 
         if not validation.get('allow_nan', True):
-            nan_mask = parsed.isnull()
-            invalid.update(np.flatnonzero(nan_mask))
-            nan_count = int(nan_mask.sum())
+            invalid.update(np.flatnonzero(unparsed_mask.to_numpy()))
+            nan_count = int(unparsed_mask.sum())
 
         return invalid, nan_count
 
@@ -135,6 +139,7 @@ def _evaluate_sentinel_rule(rule, context):
     sentinel_valid = target_series == sentinel_def['value']
 
     valid = pd.Series(np.where(applies, sentinel_valid, normal_valid), index=target_series.index)
+    valid = valid.astype('boolean')
     return valid.fillna(True)
 
 

@@ -82,6 +82,20 @@ def _sort_files_chronologically(files: list[str]) -> list[str]:
     return sorted(files, key=day_key)
 
 
+def _cast_to_nullable_int(series: pd.Series, dtype: str) -> pd.Series:
+    mask = series.isna()
+    filled = series.fillna(0)
+    truncated = filled.astype('int64')
+
+    if not (truncated[~mask] == filled[~mask]).all():
+        raise TypeError(f"Cannot safely cast non-integer values to {dtype}")
+
+    result = truncated.astype(dtype)
+    result.loc[mask] = pd.NA
+
+    return result
+
+
 def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), output_path: str | Path = Path('../../dataset/cleaned/cleaned_dataset.parquet')):
 
     raw_dataset_path = Path(raw_dataset_path)
@@ -147,6 +161,11 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
         for feature, feature_def in schema_cfg['non_numeric_features'].items():
             dtype_map[feature] = feature_def['dtype']
 
+        nullable_int_dtypes = {'Int8', 'Int16', 'Int32', 'Int64', 'UInt8', 'UInt16', 'UInt32', 'UInt64'}
+
+        direct_cast_map = {col: dtype for col, dtype in dtype_map.items() if dtype not in nullable_int_dtypes}
+        nullable_cast_map = {col: dtype for col, dtype in dtype_map.items() if dtype in nullable_int_dtypes}
+
         logger.info("Constructed dtype map for %d column(s).", len(dtype_map))
         logger.debug("Dtype map: %s", dtype_map)
         logger.info("Expected output schema contains %d column(s).", len(expected_columns))
@@ -205,7 +224,10 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                 logger.debug("Expected column schema enforced for chunk %d of %s.", chunk_number, file)
 
                 try:
-                    chunk = chunk.astype(dtype_map)
+                    chunk = chunk.astype(direct_cast_map)
+
+                    for col, dtype in nullable_cast_map.items():
+                        chunk[col] = _cast_to_nullable_int(chunk[col], dtype)
                 except Exception:
                     logger.error("Dtype conversion failed for chunk %d of %s.", chunk_number, file)
                     raise
