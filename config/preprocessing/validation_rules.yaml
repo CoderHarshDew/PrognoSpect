@@ -1,4 +1,4 @@
-version: 2.0
+version: 3.0
 
 templates:
 
@@ -37,9 +37,6 @@ sentinel_condition:
   ttl_bwd_na: &cond_ttl_bwd |
     Total Bwd Packets == 0
 
-  fragmentation_offset_na: &cond_fragmentation_offset |
-    Fragmentation Count == 0
-
 
 VALID_LABEL_SET:
   - Benign
@@ -64,7 +61,6 @@ rules:
   - id: R001
     <<: *error
     name: Destination Port Range
-    scope: group
     columns:
       - Destination Port
     expression: |
@@ -73,7 +69,6 @@ rules:
   - id: R002
     <<: *error
     name: Packet Length Ordering
-    scope: group
     columns:
       - Packet Length Min
       - Packet Length Mean
@@ -84,7 +79,6 @@ rules:
   - id: R003
     <<: *error
     name: Forward Packet Length Ordering
-    scope: group
     columns:
       - Fwd Packet Length Min
       - Fwd Packet Length Mean
@@ -95,7 +89,6 @@ rules:
   - id: R004
     <<: *error
     name: Backward Packet Length Ordering
-    scope: group
     columns:
       - Bwd Packet Length Min
       - Bwd Packet Length Mean
@@ -106,7 +99,6 @@ rules:
   - id: R005
     <<: *error
     name: Active Statistics Ordering
-    scope: group
     columns:
       - Active Min
       - Active Mean
@@ -117,7 +109,6 @@ rules:
   - id: R006
     <<: *error
     name: Idle Statistics Ordering
-    scope: group
     columns:
       - Idle Min
       - Idle Mean
@@ -128,7 +119,6 @@ rules:
   - id: R007
     <<: *error
     name: Packet Count Consistency
-    scope: group
     columns:
       - act_data_pkt_fwd
       - Total Fwd Packets
@@ -138,7 +128,6 @@ rules:
   - id: R008
     <<: *warning
     name: Header Length Validity
-    scope: group
     columns:
       - Fwd Header Length
       - Bwd Header Length
@@ -150,7 +139,6 @@ rules:
   - id: R009
     <<: *warning
     name: Flow Duration Consistency
-    scope: group
     columns:
       - Active Max
       - Idle Max
@@ -163,7 +151,6 @@ rules:
   - id: R010
     <<: *warning
     name: IAT Consistency
-    scope: group
     columns:
       - Flow IAT Min
       - Flow IAT Mean
@@ -174,7 +161,6 @@ rules:
   - id: R011
     <<: *warning
     name: Forward IAT Consistency
-    scope: group
     columns:
       - Fwd IAT Min
       - Fwd IAT Mean
@@ -185,7 +171,6 @@ rules:
   - id: R012
     <<: *warning
     name: Backward IAT Consistency
-    scope: group
     columns:
       - Bwd IAT Min
       - Bwd IAT Mean
@@ -193,25 +178,9 @@ rules:
     expression: |
       Bwd IAT Min <= Bwd IAT Mean <= Bwd IAT Max
 
-  - id: R013
-    <<: *warning
-    name: TCP Window Sentinel
-    description: >
-      -1 is allowed as a sentinel value for Init_Win_bytes_backward.
-    scope: group
-    columns:
-      - Init_Win_bytes_backward
-    expression: |
-      Init_Win_bytes_backward == -1
-      OR
-      (
-        0 <= Init_Win_bytes_backward <= 65535
-      )
-
   - id: R014
     <<: *info
     name: Rate Availability
-    scope: group
     columns:
       - Flow Duration
     expression: |
@@ -220,7 +189,6 @@ rules:
   - id: R015
     <<: *info
     name: Known Label
-    scope: group
     columns:
       - Label
     expression: |
@@ -229,133 +197,203 @@ rules:
   - id: R016
     <<: *error
     name: Flow Bytes Per Second Consistency
-    scope: column
     target_column: Flow Bytes/s
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Flow Bytes/s
       - Total Length of Fwd Packets
       - Total Length of Bwd Packets
       - Flow Duration
-    repair_expression: |
-      (Total Length of Fwd Packets + Total Length of Bwd Packets) / Flow Duration
+    expression: |
+      (Total Length of Fwd Packets + Total Length of Bwd Packets) / (Flow Duration / 1000000) - 0.000001
+      <=
+      Flow Bytes/s
+      <=
+      (Total Length of Fwd Packets + Total Length of Bwd Packets) / (Flow Duration / 1000000) + 0.000001
 
   - id: R017
     <<: *error
     name: Flow Packets Per Second Consistency
-    scope: column
     target_column: Flow Packets/s
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Flow Packets/s
       - Total Fwd Packets
       - Total Bwd Packets
       - Flow Duration
-    repair_expression: |
-      (Total Fwd Packets + Total Bwd Packets) / Flow Duration
+    expression: |
+      (Total Fwd Packets + Total Bwd Packets) / (Flow Duration / 1000000) - 0.000001
+      <=
+      Flow Packets/s
+      <=
+      (Total Fwd Packets + Total Bwd Packets) / (Flow Duration / 1000000) + 0.000001
 
   - id: R018
     <<: *error
     name: Forward Packets Per Second Consistency
-    scope: column
     target_column: Fwd Packets/s
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Fwd Packets/s
       - Total Fwd Packets
       - Flow Duration
-    repair_expression: |
-      Total Fwd Packets / Flow Duration
+    expression: |
+      Total Fwd Packets / (Flow Duration / 1000000) - 0.000001
+      <=
+      Fwd Packets/s
+      <=
+      Total Fwd Packets / (Flow Duration / 1000000) + 0.000001
 
   - id: R019
     <<: *error
     name: Backward Packets Per Second Consistency
-    scope: column
     target_column: Bwd Packets/s
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Bwd Packets/s
       - Total Bwd Packets
       - Flow Duration
-    repair_expression: |
-      Total Bwd Packets / Flow Duration
-
-  - id: R020
-    <<: *error
-    name: Average Forward Segment Size Consistency
-    scope: column
-    target_column: Avg Fwd Segment Size
-    depends_on: []
-    tolerance: 1.0e-6
-    columns:
-      - Avg Fwd Segment Size
-      - Total Length of Fwd Packets
-      - Total Fwd Packets
-    repair_expression: |
-      Total Length of Fwd Packets / Total Fwd Packets
-
-  - id: R021
-    <<: *error
-    name: Average Backward Segment Size Consistency
-    scope: column
-    target_column: Avg Bwd Segment Size
-    depends_on: []
-    tolerance: 1.0e-6
-    columns:
-      - Avg Bwd Segment Size
-      - Total Length of Bwd Packets
-      - Total Bwd Packets
-    repair_expression: |
-      Total Length of Bwd Packets / Total Bwd Packets
+    expression: |
+      Total Bwd Packets / (Flow Duration / 1000000) - 0.000001
+      <=
+      Bwd Packets/s
+      <=
+      Total Bwd Packets / (Flow Duration / 1000000) + 0.000001
 
   - id: R022
     <<: *error
     name: Down Up Ratio Consistency
-    scope: column
     target_column: Down/Up Ratio
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Down/Up Ratio
       - Total Bwd Packets
       - Total Fwd Packets
-    repair_expression: |
-      Total Bwd Packets / Total Fwd Packets
+    expression: |
+      Total Bwd Packets / Total Fwd Packets - 0.000001
+      <=
+      Down/Up Ratio
+      <=
+      Total Bwd Packets / Total Fwd Packets + 0.000001
 
   - id: R023
     <<: *error
     name: Packet Length Variance Consistency
-    scope: column
     target_column: Packet Length Variance
-    depends_on: []
-    tolerance: 1.0e-6
     columns:
       - Packet Length Variance
       - Packet Length Std
-    repair_expression: |
-      Packet Length Std ** 2
+    expression: |
+      Packet Length Std ** 2 - 0.000001
+      <=
+      Packet Length Variance
+      <=
+      Packet Length Std ** 2 + 0.000001
 
-  - id: R024
+  - id: R025
     <<: *error
-    name: Forward Header Length Duplicate Consistency
-    scope: column
-    target_column: Fwd Header Length.1
-    depends_on: []
-    tolerance: 1.0e-6
+    name: TCP Window Forward Mean Sign Overflow Check
+    target_column: TCP Window Fwd Mean
     columns:
-      - Fwd Header Length.1
-      - Fwd Header Length
-    repair_expression: |
-      Fwd Header Length
+      - TCP Window Fwd Mean
+    expression: |
+      TCP Window Fwd Mean == -1
+      OR
+      TCP Window Fwd Mean >= 0
+
+  - id: R026
+    <<: *error
+    name: TCP Window Forward Std Sign Overflow Check
+    target_column: TCP Window Fwd Std
+    columns:
+      - TCP Window Fwd Std
+    expression: |
+      TCP Window Fwd Std == -1
+      OR
+      TCP Window Fwd Std >= 0
+
+  - id: R027
+    <<: *error
+    name: TCP Window Forward Min Sign Overflow Check
+    target_column: TCP Window Fwd Min
+    columns:
+      - TCP Window Fwd Min
+    expression: |
+      TCP Window Fwd Min == -1
+      OR
+      TCP Window Fwd Min >= 0
+
+  - id: R028
+    <<: *error
+    name: TCP Window Forward Max Sign Overflow Check
+    target_column: TCP Window Fwd Max
+    columns:
+      - TCP Window Fwd Max
+    expression: |
+      TCP Window Fwd Max == -1
+      OR
+      TCP Window Fwd Max >= 0
+
+  - id: R029
+    <<: *error
+    name: TCP Window Backward Mean Sign Overflow Check
+    target_column: TCP Window Bwd Mean
+    columns:
+      - TCP Window Bwd Mean
+    expression: |
+      TCP Window Bwd Mean == -1
+      OR
+      TCP Window Bwd Mean >= 0
+
+  - id: R030
+    <<: *error
+    name: TCP Window Backward Std Sign Overflow Check
+    target_column: TCP Window Bwd Std
+    columns:
+      - TCP Window Bwd Std
+    expression: |
+      TCP Window Bwd Std == -1
+      OR
+      TCP Window Bwd Std >= 0
+
+  - id: R031
+    <<: *error
+    name: TCP Window Backward Min Sign Overflow Check
+    target_column: TCP Window Bwd Min
+    columns:
+      - TCP Window Bwd Min
+    expression: |
+      TCP Window Bwd Min == -1
+      OR
+      TCP Window Bwd Min >= 0
+
+  - id: R032
+    <<: *error
+    name: TCP Window Backward Max Sign Overflow Check
+    target_column: TCP Window Bwd Max
+    columns:
+      - TCP Window Bwd Max
+    expression: |
+      TCP Window Bwd Max == -1
+      OR
+      TCP Window Bwd Max >= 0
+
+  - id: R033
+    <<: *error
+    name: Payload Min Sentinel Correction Needed
+    target_column: Payload Min
+    columns:
+      - Payload Min
+    expression: |
+      Payload Min != -1
+
+  - id: R034
+    <<: *error
+    name: Payload P25 Sentinel Correction Needed
+    target_column: Payload P25
+    columns:
+      - Payload P25
+    expression: |
+      Payload P25 != -1
 
   - id: G001
     <<: *sentinel_conflict
     name: TCP Window Forward Mean Sentinel Consistency
-    scope: group
     target_column: TCP Window Fwd Mean
     columns:
       - TCP Window Fwd Mean
@@ -371,7 +409,6 @@ rules:
   - id: G002
     <<: *sentinel_conflict
     name: TCP Window Forward Std Sentinel Consistency
-    scope: group
     target_column: TCP Window Fwd Std
     columns:
       - TCP Window Fwd Std
@@ -387,7 +424,6 @@ rules:
   - id: G003
     <<: *sentinel_conflict
     name: TCP Window Forward Min Sentinel Consistency
-    scope: group
     target_column: TCP Window Fwd Min
     columns:
       - TCP Window Fwd Min
@@ -403,7 +439,6 @@ rules:
   - id: G004
     <<: *sentinel_conflict
     name: TCP Window Forward Max Sentinel Consistency
-    scope: group
     target_column: TCP Window Fwd Max
     columns:
       - TCP Window Fwd Max
@@ -419,7 +454,6 @@ rules:
   - id: G005
     <<: *sentinel_conflict
     name: TCP Window Backward Mean Sentinel Consistency
-    scope: group
     target_column: TCP Window Bwd Mean
     columns:
       - TCP Window Bwd Mean
@@ -435,7 +469,6 @@ rules:
   - id: G006
     <<: *sentinel_conflict
     name: TCP Window Backward Std Sentinel Consistency
-    scope: group
     target_column: TCP Window Bwd Std
     columns:
       - TCP Window Bwd Std
@@ -451,7 +484,6 @@ rules:
   - id: G007
     <<: *sentinel_conflict
     name: TCP Window Backward Min Sentinel Consistency
-    scope: group
     target_column: TCP Window Bwd Min
     columns:
       - TCP Window Bwd Min
@@ -467,7 +499,6 @@ rules:
   - id: G008
     <<: *sentinel_conflict
     name: TCP Window Backward Max Sentinel Consistency
-    scope: group
     target_column: TCP Window Bwd Max
     columns:
       - TCP Window Bwd Max
@@ -483,7 +514,6 @@ rules:
   - id: G009
     <<: *sentinel_conflict
     name: TTL Forward Mean Sentinel Consistency
-    scope: group
     target_column: TTL Fwd Mean
     columns:
       - TTL Fwd Mean
@@ -498,7 +528,6 @@ rules:
   - id: G010
     <<: *sentinel_conflict
     name: TTL Forward Std Sentinel Consistency
-    scope: group
     target_column: TTL Fwd Std
     columns:
       - TTL Fwd Std
@@ -513,7 +542,6 @@ rules:
   - id: G011
     <<: *sentinel_conflict
     name: TTL Forward Min Sentinel Consistency
-    scope: group
     target_column: TTL Fwd Min
     columns:
       - TTL Fwd Min
@@ -528,7 +556,6 @@ rules:
   - id: G012
     <<: *sentinel_conflict
     name: TTL Forward Max Sentinel Consistency
-    scope: group
     target_column: TTL Fwd Max
     columns:
       - TTL Fwd Max
@@ -543,7 +570,6 @@ rules:
   - id: G013
     <<: *sentinel_conflict
     name: TTL Backward Mean Sentinel Consistency
-    scope: group
     target_column: TTL Bwd Mean
     columns:
       - TTL Bwd Mean
@@ -558,7 +584,6 @@ rules:
   - id: G014
     <<: *sentinel_conflict
     name: TTL Backward Std Sentinel Consistency
-    scope: group
     target_column: TTL Bwd Std
     columns:
       - TTL Bwd Std
@@ -573,7 +598,6 @@ rules:
   - id: G015
     <<: *sentinel_conflict
     name: TTL Backward Min Sentinel Consistency
-    scope: group
     target_column: TTL Bwd Min
     columns:
       - TTL Bwd Min
@@ -588,7 +612,6 @@ rules:
   - id: G016
     <<: *sentinel_conflict
     name: TTL Backward Max Sentinel Consistency
-    scope: group
     target_column: TTL Bwd Max
     columns:
       - TTL Bwd Max
@@ -599,36 +622,6 @@ rules:
         expression: *cond_ttl_bwd
     expression: |
       TTL Bwd Max != -1
-
-  - id: G017
-    <<: *sentinel_conflict
-    name: Fragmentation Offset Mean Sentinel Consistency
-    scope: group
-    target_column: Fragmentation Offset Mean
-    columns:
-      - Fragmentation Offset Mean
-      - Fragmentation Count
-    sentinel:
-      sentinel_value:
-        value: -1
-        expression: *cond_fragmentation_offset
-    expression: |
-      Fragmentation Offset Mean != -1
-
-  - id: G018
-    <<: *sentinel_conflict
-    name: Fragmentation Offset Max Sentinel Consistency
-    scope: group
-    target_column: Fragmentation Offset Max
-    columns:
-      - Fragmentation Offset Max
-      - Fragmentation Count
-    sentinel:
-      sentinel_value:
-        value: -1
-        expression: *cond_fragmentation_offset
-    expression: |
-      Fragmentation Offset Max != -1
 
 
 non_repairable_column_related_rules:
@@ -644,7 +637,6 @@ non_repairable_column_related_rules:
   - R010
   - R011
   - R012
-  - R013
   - R014
   - R015
   - G001
@@ -663,16 +655,21 @@ non_repairable_column_related_rules:
   - G014
   - G015
   - G016
-  - G017
-  - G018
 
 repairable_column_related_rules:
   - R016
   - R017
   - R018
   - R019
-  - R020
-  - R021
   - R022
   - R023
-  - R024
+  - R025
+  - R026
+  - R027
+  - R028
+  - R029
+  - R030
+  - R031
+  - R032
+  - R033
+  - R034
