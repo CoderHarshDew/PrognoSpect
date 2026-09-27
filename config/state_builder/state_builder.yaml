@@ -1,0 +1,560 @@
+identifiers:
+  src_ip: Source IP
+  dst_ip: Destination IP
+  src_port: Source Port
+  dst_port: Destination Port
+  protocol: Protocol
+  timestamp: Timestamp
+  label: Label
+window:
+  size: 1min
+label:
+  benign_value: Benign
+delta:
+  first_window_strategy: zero
+columns:
+- source_column: Flow Duration
+  output_name: flow_duration
+  group: volume_count
+  sections: &id001
+  - global
+  - host
+  - graph
+  aggregation: sum
+- source_column: Total Fwd Packets
+  output_name: total_fwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Total Bwd Packets
+  output_name: total_bwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Total Length of Fwd Packets
+  output_name: total_length_of_fwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Total Length of Bwd Packets
+  output_name: total_length_of_bwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Fwd Header Length
+  output_name: fwd_header_length
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Bwd Header Length
+  output_name: bwd_header_length
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: act_data_pkt_fwd
+  output_name: act_data_pkt_fwd
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Subflow Fwd Packets
+  output_name: subflow_fwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Subflow Fwd Bytes
+  output_name: subflow_fwd_bytes
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Subflow Bwd Packets
+  output_name: subflow_bwd_packets
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Subflow Bwd Bytes
+  output_name: subflow_bwd_bytes
+  group: volume_count
+  sections: *id001
+  aggregation: sum
+- source_column: Fwd Packet Length Max
+  output_name: fwd_packet_length_max
+  group: packet_length_distribution
+  sections: &id002
+  - global
+  - host
+  - graph
+  aggregation: max
+- source_column: Fwd Packet Length Min
+  output_name: fwd_packet_length_min
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: min
+- source_column: Fwd Packet Length Mean
+  output_name: fwd_packet_length_mean
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Fwd Packet Length Std
+  output_name: fwd_packet_length_std
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Bwd Packet Length Max
+  output_name: bwd_packet_length_max
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: max
+- source_column: Bwd Packet Length Min
+  output_name: bwd_packet_length_min
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: min
+- source_column: Bwd Packet Length Mean
+  output_name: bwd_packet_length_mean
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Bwd Packet Length Std
+  output_name: bwd_packet_length_std
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Packet Length Min
+  output_name: packet_length_min
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: min
+- source_column: Packet Length Max
+  output_name: packet_length_max
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: max
+- source_column: Packet Length Mean
+  output_name: packet_length_mean
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Packet Length Std
+  output_name: packet_length_std
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Packet Length Variance
+  output_name: packet_length_variance
+  group: packet_length_distribution
+  sections: *id002
+  aggregation: mean
+- source_column: Flow Bytes/s
+  output_name: flow_bytes_per_s
+  group: rate
+  sections: &id003
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Flow Packets/s
+  output_name: flow_packets_per_s
+  group: rate
+  sections: *id003
+  aggregation: mean
+- source_column: Fwd Packets/s
+  output_name: fwd_packets_per_s
+  group: rate
+  sections: *id003
+  aggregation: mean
+- source_column: Bwd Packets/s
+  output_name: bwd_packets_per_s
+  group: rate
+  sections: *id003
+  aggregation: mean
+- source_column: Flow IAT Mean
+  output_name: flow_iat_mean
+  group: iat
+  sections: &id004
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Flow IAT Std
+  output_name: flow_iat_std
+  group: iat
+  sections: *id004
+  aggregation: mean
+- source_column: Flow IAT Max
+  output_name: flow_iat_max
+  group: iat
+  sections: *id004
+  aggregation: max
+- source_column: Flow IAT Min
+  output_name: flow_iat_min
+  group: iat
+  sections: *id004
+  aggregation: min
+- source_column: Fwd IAT Total
+  output_name: fwd_iat_total
+  group: iat
+  sections: *id004
+  aggregation: sum
+- source_column: Fwd IAT Mean
+  output_name: fwd_iat_mean
+  group: iat
+  sections: *id004
+  aggregation: mean
+- source_column: Fwd IAT Std
+  output_name: fwd_iat_std
+  group: iat
+  sections: *id004
+  aggregation: mean
+- source_column: Fwd IAT Max
+  output_name: fwd_iat_max
+  group: iat
+  sections: *id004
+  aggregation: max
+- source_column: Fwd IAT Min
+  output_name: fwd_iat_min
+  group: iat
+  sections: *id004
+  aggregation: min
+- source_column: Bwd IAT Total
+  output_name: bwd_iat_total
+  group: iat
+  sections: *id004
+  aggregation: sum
+- source_column: Bwd IAT Mean
+  output_name: bwd_iat_mean
+  group: iat
+  sections: *id004
+  aggregation: mean
+- source_column: Bwd IAT Std
+  output_name: bwd_iat_std
+  group: iat
+  sections: *id004
+  aggregation: mean
+- source_column: Bwd IAT Max
+  output_name: bwd_iat_max
+  group: iat
+  sections: *id004
+  aggregation: max
+- source_column: Bwd IAT Min
+  output_name: bwd_iat_min
+  group: iat
+  sections: *id004
+  aggregation: min
+- source_column: Fwd PSH Flags
+  output_name: fwd_psh_flags
+  group: tcp_flags
+  sections: &id005
+  - global
+  - host
+  - graph
+  aggregation: sum
+- source_column: Bwd PSH Flags
+  output_name: bwd_psh_flags
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: Fwd URG Flags
+  output_name: fwd_urg_flags
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: Bwd URG Flags
+  output_name: bwd_urg_flags
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: FIN Flag Count
+  output_name: fin_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: SYN Flag Count
+  output_name: syn_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: RST Flag Count
+  output_name: rst_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: PSH Flag Count
+  output_name: psh_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: ACK Flag Count
+  output_name: ack_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: URG Flag Count
+  output_name: urg_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: CWE Flag Count
+  output_name: cwe_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: ECE Flag Count
+  output_name: ece_flag_count
+  group: tcp_flags
+  sections: *id005
+  aggregation: sum
+- source_column: Down/Up Ratio
+  output_name: down_per_up_ratio
+  group: down_up_ratio
+  sections:
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Fwd Avg Bytes/Bulk
+  output_name: fwd_avg_bytes_per_bulk
+  group: bulk_transfer
+  sections: &id006
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Fwd Avg Packets/Bulk
+  output_name: fwd_avg_packets_per_bulk
+  group: bulk_transfer
+  sections: *id006
+  aggregation: mean
+- source_column: Fwd Avg Bulk Rate
+  output_name: fwd_avg_bulk_rate
+  group: bulk_transfer
+  sections: *id006
+  aggregation: mean
+- source_column: Bwd Avg Bytes/Bulk
+  output_name: bwd_avg_bytes_per_bulk
+  group: bulk_transfer
+  sections: *id006
+  aggregation: mean
+- source_column: Bwd Avg Packets/Bulk
+  output_name: bwd_avg_packets_per_bulk
+  group: bulk_transfer
+  sections: *id006
+  aggregation: mean
+- source_column: Bwd Avg Bulk Rate
+  output_name: bwd_avg_bulk_rate
+  group: bulk_transfer
+  sections: *id006
+  aggregation: mean
+- source_column: Init_Win_bytes_forward
+  output_name: init_win_bytes_forward
+  group: window_init
+  sections: &id007
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Init_Win_bytes_backward
+  output_name: init_win_bytes_backward
+  group: window_init
+  sections: *id007
+  aggregation: mean
+- source_column: min_seg_size_forward
+  output_name: min_seg_size_forward
+  group: window_init
+  sections: *id007
+  aggregation: mean
+- source_column: Active Mean
+  output_name: active_mean
+  group: active_idle
+  sections: &id008
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Active Std
+  output_name: active_std
+  group: active_idle
+  sections: *id008
+  aggregation: mean
+- source_column: Active Max
+  output_name: active_max
+  group: active_idle
+  sections: *id008
+  aggregation: max
+- source_column: Active Min
+  output_name: active_min
+  group: active_idle
+  sections: *id008
+  aggregation: min
+- source_column: Idle Mean
+  output_name: idle_mean
+  group: active_idle
+  sections: *id008
+  aggregation: mean
+- source_column: Idle Std
+  output_name: idle_std
+  group: active_idle
+  sections: *id008
+  aggregation: mean
+- source_column: Idle Max
+  output_name: idle_max
+  group: active_idle
+  sections: *id008
+  aggregation: max
+- source_column: Idle Min
+  output_name: idle_min
+  group: active_idle
+  sections: *id008
+  aggregation: min
+- source_column: dst_port_unique_cnt
+  output_name: dst_port_unique_cnt
+  group: cross_flow_behavioral
+  sections: &id009
+  - host
+  aggregation: mean
+- source_column: dst_port_scan_rate
+  output_name: dst_port_scan_rate
+  group: cross_flow_behavioral
+  sections: *id009
+  aggregation: mean
+- source_column: dst_port_sequentiality
+  output_name: dst_port_sequentiality
+  group: cross_flow_behavioral
+  sections: *id009
+  aggregation: mean
+- source_column: dst_port_entropy
+  output_name: dst_port_entropy
+  group: cross_flow_behavioral
+  sections: *id009
+  aggregation: mean
+- source_column: src_dst_pair_flow_rate
+  output_name: src_dst_pair_flow_rate
+  group: cross_flow_behavioral
+  sections: *id009
+  aggregation: mean
+- source_column: TTL Fwd Mean
+  output_name: ttl_fwd_mean
+  group: ttl
+  sections: &id010
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: TTL Fwd Std
+  output_name: ttl_fwd_std
+  group: ttl
+  sections: *id010
+  aggregation: mean
+- source_column: TTL Fwd Min
+  output_name: ttl_fwd_min
+  group: ttl
+  sections: *id010
+  aggregation: min
+- source_column: TTL Fwd Max
+  output_name: ttl_fwd_max
+  group: ttl
+  sections: *id010
+  aggregation: max
+- source_column: TTL Bwd Mean
+  output_name: ttl_bwd_mean
+  group: ttl
+  sections: *id010
+  aggregation: mean
+- source_column: TTL Bwd Std
+  output_name: ttl_bwd_std
+  group: ttl
+  sections: *id010
+  aggregation: mean
+- source_column: TTL Bwd Min
+  output_name: ttl_bwd_min
+  group: ttl
+  sections: *id010
+  aggregation: min
+- source_column: TTL Bwd Max
+  output_name: ttl_bwd_max
+  group: ttl
+  sections: *id010
+  aggregation: max
+- source_column: TCP Window Fwd Mean
+  output_name: tcp_window_fwd_mean
+  group: tcp_window
+  sections: &id011
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: TCP Window Fwd Std
+  output_name: tcp_window_fwd_std
+  group: tcp_window
+  sections: *id011
+  aggregation: mean
+- source_column: TCP Window Fwd Min
+  output_name: tcp_window_fwd_min
+  group: tcp_window
+  sections: *id011
+  aggregation: min
+- source_column: TCP Window Fwd Max
+  output_name: tcp_window_fwd_max
+  group: tcp_window
+  sections: *id011
+  aggregation: max
+- source_column: TCP Window Bwd Mean
+  output_name: tcp_window_bwd_mean
+  group: tcp_window
+  sections: *id011
+  aggregation: mean
+- source_column: TCP Window Bwd Std
+  output_name: tcp_window_bwd_std
+  group: tcp_window
+  sections: *id011
+  aggregation: mean
+- source_column: TCP Window Bwd Min
+  output_name: tcp_window_bwd_min
+  group: tcp_window
+  sections: *id011
+  aggregation: min
+- source_column: TCP Window Bwd Max
+  output_name: tcp_window_bwd_max
+  group: tcp_window
+  sections: *id011
+  aggregation: max
+- source_column: Payload Mean
+  output_name: payload_mean
+  group: payload
+  sections: &id012
+  - global
+  - host
+  - graph
+  aggregation: mean
+- source_column: Payload Std
+  output_name: payload_std
+  group: payload
+  sections: *id012
+  aggregation: mean
+- source_column: Payload Min
+  output_name: payload_min
+  group: payload
+  sections: *id012
+  aggregation: min
+- source_column: Payload Median
+  output_name: payload_median
+  group: payload
+  sections: *id012
+  aggregation: mean
+- source_column: Payload P25
+  output_name: payload_p25
+  group: payload
+  sections: *id012
+  aggregation: mean
+- source_column: Payload P75
+  output_name: payload_p75
+  group: payload
+  sections: *id012
+  aggregation: mean
+- source_column: Retransmission Count
+  output_name: retransmission_count
+  group: retransmission
+  sections:
+  - global
+  - host
+  - graph
+  aggregation: sum

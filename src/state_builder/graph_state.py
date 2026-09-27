@@ -1,41 +1,12 @@
-# state/graph_state.py
-
-def create_graph_state(window):
-
-    edges = []
-
-    # Same source-destination pairs ko group karo
-    grouped = window.groupby(
-        ["src_ip", "dst_ip"]
-    )
-
-    # Har communication pair ke liye edge banao
-    for (source, destination), group in grouped:
-
-        edge = {
-
-            # Source node
-            "source": source,
-
-            # Destination node
-            "destination": destination,
-
-            # Is pair ke beech kitne flows hue
-            "flow_count": len(group),
-
-            # Total packets
-            "total_packets": (
-                group["tot_fwd_pkts"].sum()
-                + group["tot_bwd_pkts"].sum()
-            ),
-
-            # Total bytes
-            "total_bytes": (
-                group["totlen_fwd_pkts"].sum()
-                + group["totlen_bwd_pkts"].sum()
-            )
+def create_graph_state(window_df, config):
+    cols = config["columns"]
+    nodes = list(set(window_df[cols["src_ip"]]).union(set(window_df[cols["dst_ip"]])))
+    edges = {}
+    grouped = window_df.groupby([cols["src_ip"], cols["dst_ip"]])
+    for (src, dst), edge_df in grouped:
+        edges[(src, dst)] = {
+            "flow_count": len(edge_df),
+            "total_packets": edge_df[cols["fwd_packets"]].sum() + edge_df[cols["bwd_packets"]].sum(),
+            "total_bytes": edge_df[cols["fwd_bytes"]].sum() + edge_df[cols["bwd_bytes"]].sum(),
         }
-
-        edges.append(edge)
-
-    return edges
+    return {"nodes": nodes, "edges": edges}

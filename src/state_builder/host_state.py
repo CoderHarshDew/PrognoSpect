@@ -1,58 +1,20 @@
-# state/host_state.py
-
-def create_host_state(window):
-
-    host_states = {}
-
-    # Source aur destination dono ko host maana jayega
-    hosts = set(window["src_ip"]).union(
-        set(window["dst_ip"])
-    )
-
-    # Har host ka behaviour calculate karo
+def create_host_state(window_df, config):
+    cols = config["columns"]
+    host_state = {}
+    outgoing = window_df.groupby(cols["src_ip"])
+    incoming = window_df.groupby(cols["dst_ip"])
+    hosts = set(window_df[cols["src_ip"]]).union(set(window_df[cols["dst_ip"]]))
     for host in hosts:
-
-        # Host se bahar jaane wala traffic
-        outgoing = window[
-            window["src_ip"] == host
-        ]
-
-        # Host par aane wala traffic
-        incoming = window[
-            window["dst_ip"] == host
-        ]
-
-        host_states[host] = {
-
-            # Outgoing traffic
-            "outgoing_flows": len(outgoing),
-
-            # Incoming traffic
-            "incoming_flows": len(incoming),
-
-            # Host kitne different destinations se communicate kar raha hai
-            "unique_destinations":
-                outgoing["dst_ip"].nunique(),
-
-            # Kitne different sources se traffic aa raha hai
-            "unique_sources":
-                incoming["src_ip"].nunique(),
-
-            # Packets sent
-            "packets_sent":
-                outgoing["tot_fwd_pkts"].sum(),
-
-            # Packets received
-            "packets_received":
-                incoming["tot_bwd_pkts"].sum(),
-
-            # Bytes sent
-            "bytes_sent":
-                outgoing["totlen_fwd_pkts"].sum(),
-
-            # Bytes received
-            "bytes_received":
-                incoming["totlen_bwd_pkts"].sum()
+        out_df = outgoing.get_group(host) if host in outgoing.groups else window_df.iloc[0:0]
+        in_df = incoming.get_group(host) if host in incoming.groups else window_df.iloc[0:0]
+        host_state[host] = {
+            "outgoing_flow_count": len(out_df),
+            "incoming_flow_count": len(in_df),
+            "unique_destinations": out_df[cols["dst_ip"]].nunique(),
+            "unique_sources": in_df[cols["src_ip"]].nunique(),
+            "packets_sent": out_df[cols["fwd_packets"]].sum() + out_df[cols["bwd_packets"]].sum(),
+            "packets_received": in_df[cols["fwd_packets"]].sum() + in_df[cols["bwd_packets"]].sum(),
+            "bytes_sent": out_df[cols["fwd_bytes"]].sum() + out_df[cols["bwd_bytes"]].sum(),
+            "bytes_received": in_df[cols["fwd_bytes"]].sum() + in_df[cols["bwd_bytes"]].sum(),
         }
-
-    return host_states
+    return host_state
