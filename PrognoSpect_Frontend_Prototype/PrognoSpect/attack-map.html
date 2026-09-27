@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Attack Map — PrognoSpect</title><link rel="stylesheet" href="css/style.css"></head>
+<body class="app-body">
+<header class="topbar">
+  <a class="brand" href="dashboard.html">
+    <img src="assets/logo.png" alt="PrognoSpect logo">
+    <span><b>PROGNOSPECT</b><small>Predictive Cyber Defence</small></span>
+  </a>
+  <div class="topbar-meta">
+    <span class="sim-badge"><i></i> SIMULATED MODE</span>
+    <span class="clock" id="liveClock">23:42:00</span>
+    <span class="dataset"><span class="icon">◈</span> CSE-CIC-IDS2018</span>
+    <a class="upload-btn" href="dashboard.html#upload">⇧ Upload PCAP / CSV</a>
+  </div>
+</header>
+<aside class="sidebar">
+  <div class="side-label">COMMAND CENTER</div>
+  <a class="nav-link" data-page="dashboard" href="dashboard.html"><span>⌂</span> Dashboard</a>
+  <a class="nav-link" data-page="trajectory" href="trajectory.html"><span>⌁</span> Live Trajectory</a>
+  <a class="nav-link" data-page="prediction" href="prediction.html"><span>◉</span> Prediction</a>
+  <a class="nav-link" data-page="attack-map" href="attack-map.html"><span>⌘</span> Attack Map</a>
+  <a class="nav-link" data-page="explain-ai" href="explain-ai.html"><span>✦</span> Explanation</a>
+  <a class="nav-link" data-page="hosts" href="hosts.html"><span>▣</span> Host Intelligence</a>
+  <div class="side-sep"></div>
+  <div class="side-label">SYSTEM</div>
+  <a class="nav-link" href="prediction.html#evaluation"><span>▥</span> Evaluation</a>
+  <a class="nav-link" href="dashboard.html#settings"><span>⚙</span> Settings</a>
+  <div class="side-spacer"></div>
+  <div class="side-ai">
+    <div class="ai-icon">✦</div>
+    <b>AI WORLD MODEL</b>
+    <small>Frontend demonstration</small>
+  </div>
+</aside>
+
+<main class="app-main">
+<div class="page-heading"><div><div class="eyebrow">RELATIONAL NETWORK VIEW</div><h1>Attack Map</h1><p>SVG-based communication graph showing the simulated attack path and affected entities.</p></div></div>
+<section class="map-layout">
+<article class="panel map-large"><div class="panel-head"><div><span class="panel-kicker">GRAPH STATE · G<sub>t</sub></span><h2>Network Topology</h2></div><div class="map-controls"><button class="small-btn" onclick="resetMap()">Reset</button><button class="small-btn" onclick="toggleAttackPath()">Attack path</button></div></div>
+<div class="full-map"><svg id="fullAttackMap" viewBox="0 0 1100 610">
+<defs><filter id="mapGlow"><feGaussianBlur stdDeviation="5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter><marker id="mBlue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#27b9ff"/></marker><marker id="mRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10Z" fill="#ff5a5f"/></marker></defs>
+<g class="map-grid"><path d="M0 80H1100M0 160H1100M0 240H1100M0 320H1100M0 400H1100M0 480H1100M100 0V610M200 0V610M300 0V610M400 0V610M500 0V610M600 0V610M700 0V610M800 0V610M900 0V610M1000 0V610"/></g>
+<g id="mapEdges">
+<path class="map-edge normal" d="M160 120 Q290 80 410 180" marker-end="url(#mBlue)"/><path class="map-edge attack-path" d="M160 120 Q290 140 410 260" marker-end="url(#mRed)"/>
+<path class="map-edge normal" d="M160 480 Q280 390 410 300" marker-end="url(#mBlue)"/><path class="map-edge attack-path" d="M440 270 Q575 190 730 145" marker-end="url(#mRed)"/>
+<path class="map-edge attack-path" d="M440 295 Q590 360 760 445" marker-end="url(#mRed)"/><path class="map-edge normal" d="M160 480 Q450 570 760 445" marker-end="url(#mBlue)"/>
+<path class="map-edge normal" d="M730 145 Q860 110 980 180" marker-end="url(#mBlue)"/><path class="map-edge normal" d="M760 445 Q880 420 980 500" marker-end="url(#mBlue)"/>
+</g>
+<g class="map-node" transform="translate(145 105)"><circle r="43"/><text>HOST</text><b>Host-03</b><small>192.168.1.12</small></g>
+<g class="map-node alert" transform="translate(145 475)"><circle r="50"/><text>HOST</text><b>Host-07</b><small>192.168.1.15</small></g>
+<g class="map-node threat" transform="translate(420 280)"><circle r="65"/><circle class="pulse" r="74"/><text>!</text><b>Host-12</b><small>192.168.1.20</small></g>
+<g class="map-node" transform="translate(760 135)"><circle r="48"/><text>DATA</text><b>Data Server</b><small>192.168.1.30</small></g>
+<g class="map-node" transform="translate(790 460)"><circle r="48"/><text>DB</text><b>Database</b><small>192.168.1.40</small></g>
+<g class="map-node faint" transform="translate(420 85)"><circle r="25"/><text>PC</text></g><g class="map-node faint" transform="translate(630 80)"><circle r="25"/><text>PC</text></g><g class="map-node faint" transform="translate(1010 180)"><circle r="25"/><text>PC</text></g><g class="map-node faint" transform="translate(1000 500)"><circle r="25"/><text>PC</text></g>
+</svg><div class="map-legend"><span><i class="blue-dot"></i> Host</span><span><i class="red-dot"></i> Suspicious</span><span><i class="threat-line"></i> Predicted attack path</span></div></div></article>
+<aside class="map-side"><article class="panel"><div class="panel-head"><div><span class="panel-kicker">SELECTED NODE</span><h2>Host-12</h2></div><span class="status danger">HIGH</span></div><div class="host-profile"><div class="profile-row"><span>IP Address</span><b>192.168.1.20</b></div><div class="profile-row"><span>Risk Score</span><b class="danger">78</b></div><div class="profile-row"><span>Current State</span><b>Discovery</b></div><div class="profile-row"><span>Predicted</span><b class="cyan">Lateral Movement</b></div><div class="profile-row"><span>Connections</span><b>17</b></div></div></article>
+<article class="panel"><div class="panel-head"><div><span class="panel-kicker">ATTACK PATH</span><h2>Observed → Predicted</h2></div></div><ol class="path-list"><li><span>1</span> Host-07 <small>Initial Access</small></li><li><span>2</span> Host-12 <small>Discovery · Current</small></li><li class="active"><span>3</span> Data Server <small>Lateral Movement · K+1</small></li><li><span>4</span> Database <small>Exfiltration · K+2</small></li></ol></article></aside>
+</section></main><script src="js/app.js"></script></body></html>

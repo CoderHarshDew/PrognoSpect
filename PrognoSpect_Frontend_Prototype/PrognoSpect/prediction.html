@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Prediction — PrognoSpect</title><link rel="stylesheet" href="css/style.css"></head>
+<body class="app-body">
+<header class="topbar">
+  <a class="brand" href="dashboard.html">
+    <img src="assets/logo.png" alt="PrognoSpect logo">
+    <span><b>PROGNOSPECT</b><small>Predictive Cyber Defence</small></span>
+  </a>
+  <div class="topbar-meta">
+    <span class="sim-badge"><i></i> SIMULATED MODE</span>
+    <span class="clock" id="liveClock">23:42:00</span>
+    <span class="dataset"><span class="icon">◈</span> CSE-CIC-IDS2018</span>
+    <a class="upload-btn" href="dashboard.html#upload">⇧ Upload PCAP / CSV</a>
+  </div>
+</header>
+<aside class="sidebar">
+  <div class="side-label">COMMAND CENTER</div>
+  <a class="nav-link" data-page="dashboard" href="dashboard.html"><span>⌂</span> Dashboard</a>
+  <a class="nav-link" data-page="trajectory" href="trajectory.html"><span>⌁</span> Live Trajectory</a>
+  <a class="nav-link" data-page="prediction" href="prediction.html"><span>◉</span> Prediction</a>
+  <a class="nav-link" data-page="attack-map" href="attack-map.html"><span>⌘</span> Attack Map</a>
+  <a class="nav-link" data-page="explain-ai" href="explain-ai.html"><span>✦</span> Explanation</a>
+  <a class="nav-link" data-page="hosts" href="hosts.html"><span>▣</span> Host Intelligence</a>
+  <div class="side-sep"></div>
+  <div class="side-label">SYSTEM</div>
+  <a class="nav-link" href="prediction.html#evaluation"><span>▥</span> Evaluation</a>
+  <a class="nav-link" href="dashboard.html#settings"><span>⚙</span> Settings</a>
+  <div class="side-spacer"></div>
+  <div class="side-ai">
+    <div class="ai-icon">✦</div>
+    <b>AI WORLD MODEL</b>
+    <small>Frontend demonstration</small>
+  </div>
+</aside>
+
+<main class="app-main">
+<div class="page-heading"><div><div class="eyebrow">PREDICTIVE DECISION SUPPORT</div><h1>Future Prediction</h1><p>Uncertainty-aware forecast, early warning and simulated decision support.</p></div></div>
+<section class="prediction-layout">
+  <article class="panel current-state-large"><div class="panel-head"><div><span class="panel-kicker">CURRENT NETWORK STATE</span><h2>Discovery → Lateral Movement</h2></div><span class="mini-status">SIMULATED</span></div><div class="state-summary"><div><small>RISK</small><strong>78</strong><span>HIGH</span></div><div><small>CONFIDENCE</small><strong>91%</strong><span>LOW UNCERTAINTY</span></div><div><small>ACTIVE HOST</small><strong>Host-07</strong><span>Predicted: Host-12</span></div><div><small>FORECAST</small><strong>K+1</strong><span>2m 18s window</span></div></div></article>
+  <article class="panel possible-paths"><div class="panel-head"><div><span class="panel-kicker">MULTI-PATH FORECAST</span><h2>Possible Future Paths</h2></div></div><div class="path-row"><div class="path-main"><b>→ Lateral Movement</b><span>68%</span></div><i><em style="width:68%"></em></i><small>Most probable path</small></div><div class="path-row"><div class="path-main"><b>→ Credential Access</b><span>21%</span></div><i><em style="width:21%"></em></i><small>Alternative path</small></div><div class="path-row"><div class="path-main"><b>→ No Further Progress</b><span>11%</span></div><i><em style="width:11%"></em></i><small>Benign convergence</small></div></article>
+</section>
+<section class="feature-grid">
+  <article class="panel uncertainty"><div class="panel-head"><div><span class="panel-kicker">B3 · CALIBRATION</span><h2>Uncertainty-Aware Prediction</h2></div><span class="status good">CALIBRATED</span></div><div class="calibration-row"><div class="cal-ring"><b>91%</b><span>Accuracy</span></div><div><p><b>Prediction set</b></p><div class="tag-list"><span>Lateral Movement</span><span>Credential Access</span></div><p class="muted">The simulated set represents plausible next-stage outcomes rather than a guaranteed single result.</p></div></div></article>
+  <article class="panel deadline" id="deadline"><div class="panel-head"><div><span class="panel-kicker">B2 · EARLY WARNING</span><h2>Decision-Deadline Clock</h2></div></div><div class="deadline-large"><strong id="deadlineLarge">02:18</strong><span>RESPONSE WINDOW OPEN</span></div><div class="warning-box"><b>Lateral Movement · 78%</b><span>Affected Host-07 · Forecast Horizon K+1</span><p>Early response may reduce simulated expected harm.</p></div></article>
+  <article class="panel cost-aware"><div class="panel-head"><div><span class="panel-kicker">B5 · COST-AWARE ACTION</span><h2>Action Selection</h2></div><span class="mini-status">POLICY-GUIDED</span></div><div class="decision-table"><div><span>Policy</span><b>Balanced Protection</b></div><div><span>Method</span><b>Benefit − Disruption</b></div><div><span>Mode</span><b>Policy-Guided</b></div><div><span>Recommended</span><b class="cyan">Monitor Host-12</b></div></div><div class="action-options"><button onclick="showToast('Simulated: Monitor Host-12')">Monitor Host-12</button><button onclick="showToast('Simulated: Isolate Host-07')">Isolate Host-07</button><button onclick="showToast('Simulated: Block connection')">Block Connection</button></div><small class="muted">Ranking is simulated. Real-world action policy would be organization-defined.</small></article>
+  <article class="panel tempo"><div class="panel-head"><div><span class="panel-kicker">B6 · ATTACKER TEMPO</span><h2>Progression Speed</h2></div></div><div class="tempo-value"><strong>AUTOMATED</strong><span>Fast activity pattern</span></div><div class="tempo-stats"><div><small>Activity Speed</small><b>High</b></div><div><small>Repetition</small><b>0.82</b></div><div><small>Forecast Window</small><b>K+1</b></div></div></article>
+</section>
+<section class="panel insight-wide"><div class="panel-head"><div><span class="panel-kicker">WORLD MODEL INSIGHT</span><h2>What the prototype is demonstrating</h2></div></div><div class="flow-strip"><span>PCAP / CSV</span><b>→</b><span>Temporal State</span><b>→</b><span>Attack Graph</span><b>→</b><span>Proposed AI World Model</span><b>→</b><span>Future Prediction</span><b>→</b><span>Risk + Explanation</span></div><p class="prototype-note">This frontend does not run a trained GNN, Temporal Transformer, World Model, SHAP pipeline or live network telemetry. Values shown here are simulated demonstration data.</p></section>
+<section class="panel" id="evaluation"><div class="panel-head"><div><span class="panel-kicker">EVALUATION</span><h2>Prototype Evaluation View</h2></div></div><div class="eval-grid"><div><small>F1 SCORE</small><strong>0.91</strong><span>Simulated</span></div><div><small>PRECISION</small><strong>0.93</strong><span>Simulated</span></div><div><small>RECALL</small><strong>0.89</strong><span>Simulated</span></div><div><small>LEAD TIME</small><strong>2.3m</strong><span>Simulated</span></div></div></section>
+</main><script src="js/app.js"></script></body></html>

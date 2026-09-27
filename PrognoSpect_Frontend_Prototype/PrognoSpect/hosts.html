@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Host Intelligence — PrognoSpect</title><link rel="stylesheet" href="css/style.css"></head>
+<body class="app-body">
+<header class="topbar">
+  <a class="brand" href="dashboard.html">
+    <img src="assets/logo.png" alt="PrognoSpect logo">
+    <span><b>PROGNOSPECT</b><small>Predictive Cyber Defence</small></span>
+  </a>
+  <div class="topbar-meta">
+    <span class="sim-badge"><i></i> SIMULATED MODE</span>
+    <span class="clock" id="liveClock">23:42:00</span>
+    <span class="dataset"><span class="icon">◈</span> CSE-CIC-IDS2018</span>
+    <a class="upload-btn" href="dashboard.html#upload">⇧ Upload PCAP / CSV</a>
+  </div>
+</header>
+<aside class="sidebar">
+  <div class="side-label">COMMAND CENTER</div>
+  <a class="nav-link" data-page="dashboard" href="dashboard.html"><span>⌂</span> Dashboard</a>
+  <a class="nav-link" data-page="trajectory" href="trajectory.html"><span>⌁</span> Live Trajectory</a>
+  <a class="nav-link" data-page="prediction" href="prediction.html"><span>◉</span> Prediction</a>
+  <a class="nav-link" data-page="attack-map" href="attack-map.html"><span>⌘</span> Attack Map</a>
+  <a class="nav-link" data-page="explain-ai" href="explain-ai.html"><span>✦</span> Explanation</a>
+  <a class="nav-link" data-page="hosts" href="hosts.html"><span>▣</span> Host Intelligence</a>
+  <div class="side-sep"></div>
+  <div class="side-label">SYSTEM</div>
+  <a class="nav-link" href="prediction.html#evaluation"><span>▥</span> Evaluation</a>
+  <a class="nav-link" href="dashboard.html#settings"><span>⚙</span> Settings</a>
+  <div class="side-spacer"></div>
+  <div class="side-ai">
+    <div class="ai-icon">✦</div>
+    <b>AI WORLD MODEL</b>
+    <small>Frontend demonstration</small>
+  </div>
+</aside>
+
+<main class="app-main">
+<div class="page-heading"><div><div class="eyebrow">ENTITY INTELLIGENCE</div><h1>Host Intelligence</h1><p>Simulated host/state information connected to the predicted trajectory.</p></div></div>
+<section class="host-metrics"><article class="metric-card"><small>ACTIVE HOSTS</small><strong>42</strong><em>Across simulated network</em></article><article class="metric-card threat-card"><small>SUSPICIOUS HOSTS</small><strong>07</strong><em>Requiring attention</em></article><article class="metric-card"><small>GRAPH EDGES</small><strong>137</strong><em>Communication relationships</em></article><article class="metric-card"><small>CLUSTERS</small><strong>05</strong><em>Communication groups</em></article></section>
+<section class="panel"><div class="panel-head"><div><span class="panel-kicker">HOST INVENTORY</span><h2>Risk / State Overview</h2></div><input class="table-search" id="hostSearch" placeholder="Search host..." oninput="filterHosts()"></div><div class="table-wrap"><table id="hostTable"><thead><tr><th>Host</th><th>Role</th><th>State</th><th>Risk</th><th>Prediction</th><th>Connections</th><th>Status</th></tr></thead><tbody><tr><td><b>Host-07</b><small>192.168.1.15</small></td><td>Workstation</td><td>Initial Access</td><td class="danger">78</td><td>Lateral Movement</td><td>17</td><td><span class="status danger">Suspicious</span></td></tr><tr><td><b>Host-12</b><small>192.168.1.20</small></td><td>Internal Server</td><td>Discovery</td><td class="danger">72</td><td>Lateral Movement</td><td>21</td><td><span class="status danger">At Risk</span></td></tr><tr><td><b>Host-03</b><small>192.168.1.12</small></td><td>Workstation</td><td>Normal</td><td>21</td><td>Discovery</td><td>8</td><td><span class="status good">Normal</span></td></tr><tr><td><b>Data-Srv</b><small>192.168.1.30</small></td><td>Data Server</td><td>Normal</td><td>46</td><td>Exfiltration</td><td>13</td><td><span class="status warn">Watch</span></td></tr><tr><td><b>Database</b><small>192.168.1.40</small></td><td>Database</td><td>Normal</td><td>31</td><td>Critical Impact</td><td>6</td><td><span class="status good">Normal</span></td></tr></tbody></table></div></section>
+<section class="two-grid"><article class="panel"><div class="panel-head"><div><span class="panel-kicker">SELECTED HOST</span><h2>Host-07</h2></div><span class="status danger">HIGH RISK</span></div><div class="host-detail"><div class="host-avatar">H7</div><div><b>Workstation</b><span>192.168.1.15</span><small>Active Host · Predicted involvement K+1</small></div></div><div class="detail-grid"><div><small>Current Stage</small><b>Initial Access</b></div><div><small>Next Stage</small><b class="cyan">Lateral Movement</b></div><div><small>Risk</small><b class="danger">78</b></div><div><small>Confidence</small><b>91%</b></div></div></article><article class="panel"><div class="panel-head"><div><span class="panel-kicker">HOST STATE</span><h2>Behaviour Signals</h2></div></div><div class="signal-list"><div><span>Internal Connections</span><b>+23%</b><i><em style="width:76%"></em></i></div><div><span>SYN Activity</span><b>+41%</b><i><em style="width:88%"></em></i></div><div><span>Port Diversity</span><b>High</b><i><em style="width:69%"></em></i></div><div><span>Flow Anomaly</span><b>Medium</b><i><em style="width:55%"></em></i></div></div></article></section>
+</main><script src="js/app.js"></script></body></html>

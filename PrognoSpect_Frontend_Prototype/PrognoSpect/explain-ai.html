@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Explain AI — PrognoSpect</title><link rel="stylesheet" href="css/style.css"></head>
+<body class="app-body">
+<header class="topbar">
+  <a class="brand" href="dashboard.html">
+    <img src="assets/logo.png" alt="PrognoSpect logo">
+    <span><b>PROGNOSPECT</b><small>Predictive Cyber Defence</small></span>
+  </a>
+  <div class="topbar-meta">
+    <span class="sim-badge"><i></i> SIMULATED MODE</span>
+    <span class="clock" id="liveClock">23:42:00</span>
+    <span class="dataset"><span class="icon">◈</span> CSE-CIC-IDS2018</span>
+    <a class="upload-btn" href="dashboard.html#upload">⇧ Upload PCAP / CSV</a>
+  </div>
+</header>
+<aside class="sidebar">
+  <div class="side-label">COMMAND CENTER</div>
+  <a class="nav-link" data-page="dashboard" href="dashboard.html"><span>⌂</span> Dashboard</a>
+  <a class="nav-link" data-page="trajectory" href="trajectory.html"><span>⌁</span> Live Trajectory</a>
+  <a class="nav-link" data-page="prediction" href="prediction.html"><span>◉</span> Prediction</a>
+  <a class="nav-link" data-page="attack-map" href="attack-map.html"><span>⌘</span> Attack Map</a>
+  <a class="nav-link" data-page="explain-ai" href="explain-ai.html"><span>✦</span> Explanation</a>
+  <a class="nav-link" data-page="hosts" href="hosts.html"><span>▣</span> Host Intelligence</a>
+  <div class="side-sep"></div>
+  <div class="side-label">SYSTEM</div>
+  <a class="nav-link" href="prediction.html#evaluation"><span>▥</span> Evaluation</a>
+  <a class="nav-link" href="dashboard.html#settings"><span>⚙</span> Settings</a>
+  <div class="side-spacer"></div>
+  <div class="side-ai">
+    <div class="ai-icon">✦</div>
+    <b>AI WORLD MODEL</b>
+    <small>Frontend demonstration</small>
+  </div>
+</aside>
+
+<main class="app-main">
+<div class="page-heading"><div><div class="eyebrow">INTERPRETABLE DECISION SUPPORT</div><h1>Explainable AI</h1><p>Why the prototype predicts Lateral Movement as the next stage.</p></div></div>
+<section class="explain-hero"><article class="panel explanation-main"><div class="panel-head"><div><span class="panel-kicker">PREDICTION EXPLANATION</span><h2>Why this prediction?</h2></div><span class="mini-status">SIMULATED SHAP-STYLE VIEW</span></div><div class="explain-result"><div class="result-stage"><small>PREDICTED NEXT STAGE</small><strong>Lateral Movement</strong><span>Confidence 91%</span></div><div class="explain-copy"><p>The simulated decision is driven primarily by changes in internal communication patterns, port behaviour and packet timing.</p><div class="feature-bars large"><div><span>Internal connection increase</span><b>34%</b><i><em style="width:34%"></em></i></div><div><span>Port behaviour</span><b>27%</b><i><em style="width:27%"></em></i></div><div><span>Packet timing / IAT</span><b>19%</b><i><em style="width:19%"></em></i></div><div><span>SYN ratio</span><b>12%</b><i><em style="width:12%"></em></i></div><div><span>Flow statistics</span><b>8%</b><i><em style="width:8%"></em></i></div></div></div></div></article>
+<aside class="panel evidence-focus"><div class="panel-head"><div><span class="panel-kicker">MOST RELEVANT ENTITIES</span><h2>Hosts & Edges</h2></div></div><div class="focus-node"><span>Host-07</span><b>→</b><span>Host-12</span></div><ul class="evidence-list"><li><i></i>High internal connection ratio</li><li><i></i>Unusual port usage: 445</li><li><i></i>Abnormal packet timing</li><li><i></i>Elevated SYN activity</li></ul><div class="why-box"><b>Interpretation</b><p>These observed signals are simulated evidence used to demonstrate how an explainability layer could connect model output to network behaviour.</p></div></aside></section>
+<section class="panel evidence-table"><div class="panel-head"><div><span class="panel-kicker">OBSERVED EVIDENCE</span><h2>Evidence Explorer</h2></div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Destination</th><th>Signal</th><th>Observed Value</th><th>Contribution</th><th>Interpretation</th></tr></thead><tbody><tr><td>Host-07</td><td>Host-12</td><td>Internal Connections</td><td>+23%</td><td class="danger">34%</td><td>Supports lateral movement hypothesis</td></tr><tr><td>Host-07</td><td>Host-12</td><td>Port Behaviour</td><td>445</td><td class="danger">27%</td><td>Unusual communication pattern</td></tr><tr><td>Host-07</td><td>Data Server</td><td>Packet Timing</td><td>3ms IAT</td><td>19%</td><td>Abnormal timing characteristic</td></tr><tr><td>Host-03</td><td>Host-12</td><td>SYN Ratio</td><td>0.78</td><td>12%</td><td>Elevated connection initiation</td></tr></tbody></table></div></section>
+<section class="panel explanation-flow"><div class="panel-head"><div><span class="panel-kicker">INTERPRETATION CHAIN</span><h2>Evidence → Prediction</h2></div></div><div class="flow-strip"><span>Observed telemetry</span><b>→</b><span>Temporal change</span><b>→</b><span>Graph relationship</span><b>→</b><span>Future trajectory</span><b>→</b><span>Stage prediction</span></div></section>
+</main><script src="js/app.js"></script></body></html>
