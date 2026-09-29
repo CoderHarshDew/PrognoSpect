@@ -1,8 +1,17 @@
 const attackStages=[
- {current:"Initial Access",next:"Discovery",risk:45,confidence:86,k1:["Discovery",86],k2:["Lateral Movement",72],k3:["Exfiltration",61],active:"Host-07",predicted:"Host-12"},
- {current:"Discovery",next:"Lateral Movement",risk:78,confidence:91,k1:["Lateral Movement",91],k2:["Exfiltration",78],k3:["Critical Impact",64],active:"Host-07",predicted:"Host-12"},
- {current:"Lateral Movement",next:"Exfiltration",risk:89,confidence:94,k1:["Exfiltration",94],k2:["Critical Impact",81],k3:["Service Disruption",68],active:"Host-12",predicted:"Data Server"},
- {current:"Exfiltration",next:"Critical Impact",risk:97,confidence:96,k1:["Critical Impact",96],k2:["Service Disruption",88],k3:["Network Compromise",74],active:"Data Server",predicted:"Database"}
+ {current:"Reconnaissance",next:"Resource Development",risk:8,confidence:58,k1:["Resource Development",58],k2:["Initial Access",46],k3:["Execution",34],active:"Host-01",predicted:"Host-01"},
+ {current:"Resource Development",next:"Initial Access",risk:17,confidence:64,k1:["Initial Access",64],k2:["Execution",52],k3:["Persistence",39],active:"Host-01",predicted:"Host-03"},
+ {current:"Initial Access",next:"Execution",risk:26,confidence:71,k1:["Execution",71],k2:["Persistence",58],k3:["Privilege Escalation",45],active:"Host-03",predicted:"Host-03"},
+ {current:"Execution",next:"Persistence",risk:34,confidence:76,k1:["Persistence",76],k2:["Privilege Escalation",63],k3:["Defense Evasion",50],active:"Host-03",predicted:"Host-03"},
+ {current:"Persistence",next:"Privilege Escalation",risk:42,confidence:79,k1:["Privilege Escalation",79],k2:["Defense Evasion",66],k3:["Credential Access",53],active:"Host-03",predicted:"Host-05"},
+ {current:"Privilege Escalation",next:"Defense Evasion",risk:50,confidence:82,k1:["Defense Evasion",82],k2:["Credential Access",69],k3:["Discovery",56],active:"Host-05",predicted:"Host-05"},
+ {current:"Defense Evasion",next:"Credential Access",risk:58,confidence:85,k1:["Credential Access",85],k2:["Discovery",73],k3:["Lateral Movement",60],active:"Host-05",predicted:"Host-07"},
+ {current:"Credential Access",next:"Discovery",risk:65,confidence:87,k1:["Discovery",87],k2:["Lateral Movement",76],k3:["Collection",63],active:"Host-07",predicted:"Host-07"},
+ {current:"Discovery",next:"Lateral Movement",risk:72,confidence:89,k1:["Lateral Movement",89],k2:["Collection",79],k3:["Command and Control",66],active:"Host-07",predicted:"Host-07"},
+ {current:"Lateral Movement",next:"Collection",risk:79,confidence:91,k1:["Collection",91],k2:["Command and Control",82],k3:["Exfiltration",70],active:"Host-07",predicted:"Host-12"},
+ {current:"Collection",next:"Command and Control",risk:85,confidence:92,k1:["Command and Control",92],k2:["Exfiltration",85],k3:["Impact",74],active:"Host-12",predicted:"Host-12"},
+ {current:"Command and Control",next:"Exfiltration",risk:91,confidence:94,k1:["Exfiltration",94],k2:["Impact",88],k3:["Impact",78],active:"Host-12",predicted:"Data Server"},
+ {current:"Exfiltration",next:"Impact",risk:97,confidence:96,k1:["Impact",96],k2:["Impact",90],k3:["Impact",80],active:"Data Server",predicted:"Database"}
 ];
 let currentStage=1;
 let deadlineSeconds=138;
@@ -53,7 +62,7 @@ function updateDashboard(){updateSimulation()}
 function updateRiskLevel(){const d=attackStages[currentStage];setText("riskLevel",riskLevel(d.risk))}
 function updateNetworkStages(data){
   const track=document.getElementById("stageTrack"); if(!track)return;
-  const stages=["Initial Access","Discovery","Lateral Movement","Exfiltration","Critical Impact"];
+  const stages=["Reconnaissance","Resource Development","Initial Access","Execution","Persistence","Privilege Escalation","Defense Evasion","Credential Access","Discovery","Lateral Movement","Collection","Command and Control","Exfiltration","Impact"];
   const currentIndex=stages.indexOf(data.current);
   const nextIndex=stages.indexOf(data.next);
   const values=[null,null,data.k1?.[1],data.k2?.[1],data.k3?.[1]];
