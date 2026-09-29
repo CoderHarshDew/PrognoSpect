@@ -1,7 +1,0 @@
-# Tell Jekyll where your layouts/templates are stored
-layouts_dir: template
-
-# Prevent Jekyll from accidentally ignoring your asset and static folders
-include:
-  - asset
-  - static
