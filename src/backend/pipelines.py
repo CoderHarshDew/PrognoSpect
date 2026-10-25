@@ -95,8 +95,21 @@ def _cast_to_nullable_int(series: pd.Series, dtype: str) -> pd.Series:
 
     return result
 
+def _parquet_writer_options(schema: pa.Schema) -> dict:
+    float_columns = [field.name for field in schema if pa.types.is_floating(field.type)]
+    other_columns = [field.name for field in schema if not pa.types.is_floating(field.type)]
 
-def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), output_path: str | Path = Path('../../dataset/cleaned/cleaned_dataset.parquet')):
+    return {
+        'compression': 'zstd',
+        'compression_level': 22,
+        'use_dictionary': other_columns,
+        'column_encoding': {name: 'BYTE_STREAM_SPLIT' for name in float_columns} or None,
+        'data_page_version': '2.0'
+    }
+
+
+def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), output_path: str | Path = Path(
+    '../../dataset/temp/cleaned_dataset.parquet')):
 
     raw_dataset_path = Path(raw_dataset_path)
     output_path = Path(output_path)
@@ -290,7 +303,7 @@ def clean_and_save(raw_dataset_path: str | Path = Path('../../dataset/raw'), out
                     logger.info("Creating Parquet writer using schema from chunk %d of %s.", chunk_number, file)
                     logger.debug("Initial Parquet schema: %s", table.schema)
 
-                    writer = pq.ParquetWriter(output_path, table.schema, compression="snappy")
+                    writer = pq.ParquetWriter(output_path, table.schema, **_parquet_writer_options(table.schema))
 
                     logger.info("Parquet writer created: %s", output_path)
 
