@@ -1,0 +1,148 @@
+window:
+  size_seconds: 60
+  timestamp_format: "%d/%m/%Y %H:%M:%S"
+  drop_empty_windows: true
+
+columns:
+  flow_id: "Flow ID"
+  src_ip: "Source IP"
+  dst_ip: "Destination IP"
+  src_port: "Source Port"
+  dst_port: "Destination Port"
+  protocol: "Protocol"
+  timestamp: "Timestamp"
+  label: "Label"
+
+cleaning:
+  replace_inf_with_nan: true
+  nan_fill_value: 0.0
+
+global_state:
+  include_flow_count: true
+  unique_count_columns:
+    - "Source IP"
+    - "Destination IP"
+    - "Destination Port"
+  protocol_values: [0, 6, 17]
+  sum_columns:
+    - "Total Fwd Packets"
+    - "Total Bwd Packets"
+    - "Total Length of Fwd Packets"
+    - "Total Length of Bwd Packets"
+    - "FIN Flag Count"
+    - "SYN Flag Count"
+    - "RST Flag Count"
+    - "PSH Flag Count"
+    - "ACK Flag Count"
+    - "URG Flag Count"
+    - "Retransmission Count"
+    - "Fragmentation Count"
+  mean_columns:
+    - "Flow Duration"
+    - "Flow Bytes/s"
+    - "Flow Packets/s"
+    - "Flow IAT Mean"
+    - "Fwd IAT Mean"
+    - "Bwd IAT Mean"
+    - "Packet Length Mean"
+    - "Average Packet Size"
+    - "Down/Up Ratio"
+    - "dst_port_unique_cnt"
+    - "dst_port_scan_rate"
+    - "dst_port_sequentiality"
+    - "dst_port_entropy"
+    - "src_dst_pair_flow_rate"
+    - "TTL Fwd Mean"
+    - "TTL Bwd Mean"
+    - "TCP Window Fwd Mean"
+    - "TCP Window Bwd Mean"
+    - "Payload Mean"
+  std_columns:
+    - "Flow Duration"
+    - "Flow Bytes/s"
+    - "Flow Packets/s"
+    - "Packet Length Mean"
+  max_columns:
+    - "Flow Duration"
+    - "Flow Bytes/s"
+    - "Flow Packets/s"
+    - "dst_port_scan_rate"
+    - "src_dst_pair_flow_rate"
+
+host_state:
+  max_hosts: 50
+  select_top_by: "flow_count"
+  pad_value: 0.0
+  sum_columns:
+    - "Total Fwd Packets"
+    - "Total Bwd Packets"
+    - "Total Length of Fwd Packets"
+    - "Total Length of Bwd Packets"
+    - "FIN Flag Count"
+    - "SYN Flag Count"
+    - "RST Flag Count"
+    - "ACK Flag Count"
+    - "Retransmission Count"
+  mean_columns:
+    - "Flow Duration"
+    - "Flow IAT Mean"
+    - "Packet Length Mean"
+    - "Payload Mean"
+    - "TTL Fwd Mean"
+    - "TTL Bwd Mean"
+    - "TCP Window Fwd Mean"
+    - "TCP Window Bwd Mean"
+    - "src_dst_pair_flow_rate"
+  flag_ratio_columns:
+    - "SYN Flag Count"
+    - "RST Flag Count"
+    - "FIN Flag Count"
+    - "ACK Flag Count"
+  unique_peer_count: true
+  unique_dst_port_count: true
+
+graph_state:
+  max_nodes: 50
+  edge_sum_columns:
+    - "Total Fwd Packets"
+    - "Total Bwd Packets"
+    - "Total Length of Fwd Packets"
+    - "Total Length of Bwd Packets"
+  edge_mean_columns:
+    - "Flow Duration"
+  edge_flag_ratio_columns:
+    - "SYN Flag Count"
+    - "RST Flag Count"
+    - "FIN Flag Count"
+    - "ACK Flag Count"
+  include_edge_flow_count: true
+  make_undirected: false
+
+delta_state:
+  enabled: true
+  apply_to:
+    - "global"
+    - "host"
+  first_window_fill: 0.0
+
+window_label:
+  benign_label: "Benign"
+  attack_labels:
+    - "FTP-BruteForce"
+    - "SSH-Bruteforce"
+    - "DoS attacks-GoldenEye"
+    - "DoS attacks-Slowloris"
+    - "DoS attacks-Hulk"
+    - "DDoS attacks-LOIC-HTTP"
+    - "DDOS attack-LOIC-UDP"
+    - "DDOS attack-HOIC"
+    - "SQL Injection"
+    - "Brute Force -XSS"
+    - "Brute Force -Web"
+    - "Infilteration"
+    - "Bot"
+
+scaling:
+  enabled: true
+  clip_value: 10.0
+  min_std: 0.00000001

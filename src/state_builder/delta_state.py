@@ -1,13 +1,35 @@
+import pandas as pd
+
+
+def get_previous_part(previous_state, name):
+    return None if previous_state is None else previous_state[name]
+
+
+def get_global_delta(current_global, previous_global, fill_value):
+    if previous_global is None:
+        return {f"delta_{key}": fill_value for key in current_global}
+    return {f"delta_{key}": value - previous_global[key] for key, value in current_global.items()}
+
+
+def get_host_delta(current_host, previous_host, fill_value, pad_value):
+    features = current_host["features"]
+    if previous_host is None:
+        return pd.DataFrame(fill_value, index=features.index, columns=features.columns).add_prefix("delta_")
+    previous = previous_host["features"].reindex(features.index, fill_value=0.0)
+    delta = (features - previous).add_prefix("delta_")
+    is_padding = pd.Series(current_host["mask"], index=features.index) == 0
+    delta.loc[is_padding] = pad_value
+    return delta
+
+
 def calculate_delta(current_state, previous_state, config):
-    if previous_state is None:
-        strategy = config["delta"]["first_window_strategy"]
-        if strategy == "zero":
-            previous_state = {"global": {k: 0 for k in current_state["global"]}, "host": {}, "graph": {"nodes": [], "edges": {}}}
-    global_delta = {k: current_state["global"][k] - previous_state["global"].get(k, 0) for k in current_state["global"]}
-    new_hosts = list(set(current_state["host"].keys()) - set(previous_state["host"].keys()))
-    removed_hosts = list(set(previous_state["host"].keys()) - set(current_state["host"].keys()))
-    current_edges = set(current_state["graph"]["edges"].keys())
-    previous_edges = set(previous_state["graph"]["edges"].keys())
-    new_edges = list(current_edges - previous_edges)
-    removed_edges = list(previous_edges - current_edges)
-    return {"global_delta": global_delta, "new_hosts": new_hosts, "removed_hosts": removed_hosts, "new_edges": new_edges, "removed_edges": removed_edges}
+    delta_config = config["delta_state"]
+    if not delta_config["enabled"]:
+        return {}
+    fill_value = delta_config["first_window_fill"]
+    delta = {}
+    if "global" in delta_config["apply_to"]:
+        delta["global"] = get_global_delta(current_state["global"], get_previous_part(previous_state, "global"), fill_value)
+    if "host" in delta_config["apply_to"]:
+        delta["host"] = get_host_delta(current_state["host"], get_previous_part(previous_state, "host"), fill_value, config["host_state"]["pad_value"])
+    return delta
